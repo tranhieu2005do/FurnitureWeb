@@ -1,0 +1,68 @@
+version: '3.7'
+
+services:
+  zookeeper-01:
+    image: confluentinc/cp-zookeeper:7.5.3
+    hostname: zookeeper-01
+    container_name: zookeeper-01
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_SERVERS: zookeeper-01:2888:3888
+  kafka-broker-01:
+    image: confluentinc/cp-kafka:7.5.3
+    hostname: kafka-broker-01
+    container_name: kafka-broker-01
+    volumes:
+      - ./log4j2.xml:/etc/kafka/log4j2.xml
+    ports:
+      - "9092:9092" # cho phép truy cập giao tiếp client với kafka qua port 9092 trên máy chủ
+#      - "29092:29092" # cho phép giao tếp giữa các kafka broker trong cluster
+      - "9999:9999" # cho phép truy cập JMX(Java management extensions) của kafka qua port 9999 trên máy chủ
+    environment:
+      # Đinịnh nghĩa các listener của kafka và địa chỉ truy cập
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-broker-01:19092, EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+#      , DOCKER://host.docker.internal:29092
+      # INTERNAL://kafka-broker-01:19092: Listener nội bộ cho phép giao tiếp giữa các container kafka
+      # EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092 : Listener bên ngoài cho phép client bên ngoài truy cập kafka broker
+      # DOCKER://host.docker.internal:29092: Listener cho phép giao tiếp giữa các container kafka trong cluster docker
+
+      # thiết lập giao thức bảo mật cho từng listener, trong trường này tất cả đều dùng PLAINTEXT (không mã hóa)
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT
+#      , DOCKER:PLAINTEXT
+
+      # xác định listener dùng cho giao tiếp giữa các broker kafka mà hệ thống dùng
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-01:2181"
+      KAFKA_BROKER_ID: 1
+
+      #Cấu hình mức độ log cho các thành phần kafka
+      KAFKA_LOG4J_LOGGERS: "-Dlog4j.configurationFile=/etc/kafka/log4j2.xml"
+
+      #thiết lập số bản sao cho chủ đề offset trong kafka
+      # topic "offset" lưu thoong tin về vị trí đọc cuối cùng của mỗi consumer trong mỗi phân vùng cùa kafka topic
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # số bản sao cho chủ đề nhật ký trạng thái giao dịch (transaction state log) trong kafka
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # lưu giữ thông tin về trạng thái của các giao dịch
+      # cho phép kafka khôi phục giao dịch dang dở trong trường hợp broker gặp sự cố
+
+      #thiet lập số lượng broker tối thiểu phải xác nhận một bản ghi mới trong nhật ký trạng thái giao dịch trước khi được coi là hoàn thành
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      #giá trị này đảm bảo rằng dữ liệu giao dịch được lưu trữ trên ủ số broker
+
+      #thiết lập port và hostname cho JMX của kafka
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
+
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+
+      #cho phép mọi người truy cập nếu không có ACL nào được tìm thấy
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+
+    depends_on:
+      - zookeeper-01

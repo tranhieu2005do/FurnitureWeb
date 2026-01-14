@@ -1,0 +1,56 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: -1 # -1 : wait for all leader and replication, 1: wait leader write success not wait follower, 0: no wait for kafka response
+      retries: 2147483647
+      # prevent duplicate send
+      properties:
+        [enable.idempotence]: true # check duplicate when retry
+        [max.in.flight.requests.per.connection]: 5
+    consumer:
+      group-id: furniture-shop
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: com.example.FurnitureShop.DTO.Request
+    listener:
+      ack-mode: MANUAL
+  application:
+    name: FurnitureShop
+  datasource:
+    url: jdbc:mysql://localhost:3306/furniture?useSSL=false&serverTimezone=UTC
+    username: root
+    password: 09022005
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none   # create | update | validate | none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  cache:
+    type: caffeine
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+caffeine:
+  spec: maximumSize=500,expireAfterWrite=10m
+server:
+  port: 8080
+upload:
+  dir: src/main/resources/uploads/
+mailServer:
+  host: smtp.gmail.com
+  port: 587
+  email: dotranhieu925@gmail.com
+  password: aresjrvkujpsipvh
+  protocol: smtp
+  isSSL: false

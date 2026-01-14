@@ -1,0 +1,16 @@
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT"/>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="kafka.controller" level="INFO"/>
+        <Logger name="kafka.server" level="INFO"/>
+        <Logger name="kafka.log.LogCleaner" level="INFO"/>
+        <Logger name="org.apache.zookeeper" level="INFO"/>
+
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

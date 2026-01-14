@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác nhận đơn hàng</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 40px 20px;
+        }
+
+        .email-container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .header-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 15px;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 16px;
+            color: #2d3748;
+            line-height: 1.8;
+            margin-bottom: 25px;
+        }
+
+        .order-info {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .order-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .order-date {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 20px 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .info-label {
+            color: #718096;
+            min-width: 140px;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .product-table th {
+            background: #edf2f7;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: #2d3748;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .product-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .total-section {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .total-row.grand-total {
+            border-top: 2px solid #667eea;
+            margin-top: 10px;
+            padding-top: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .next-steps {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+
+        .next-steps h3 {
+            color: #c53030;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .next-steps p {
+            color: #742a2a;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .thank-you-section {
+            text-align: center;
+            margin: 35px 0 25px;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-radius: 8px;
+        }
+
+        .thank-you-section h2 {
+            color: #2d3748;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .thank-you-section p {
+            color: #4a5568;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 14px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .footer {
+            background: #2d3748;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .footer p {
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .footer a {
+            color: #90cdf4;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 30px 20px;
+            }
+
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .product-table {
+                font-size: 13px;
+            }
+
+            .product-table th,
+            .product-table td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-icon">
+            <svg viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <h1 th:text="${subject}">Đặt hàng thành công!</h1>
+        <p th:text="${content}">Cảm ơn bạn đã tin tưởng lựa chọn chúng tôi</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="greeting">
+            Kính gửi <strong th:text="${fullName}"></strong>,<br><br>
+            Chúng tôi xin gửi lời cảm ơn chân thành nhất đến Quý khách đã tin tưởng và lựa chọn sản phẩm/dịch vụ của chúng tôi. Đơn hàng của bạn đã được tiếp nhận và đang trong quá trình xử lý.
+        </div>
+
+        <!-- Order Information -->
+        <div class="order-info">
+            <div class="order-header">
+                <div class="order-number">
+                    Mã đơn hàng: <span th:text="${trackNumber}"></span>
+                </div>
+                <div class="order-date" th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy - HH:mm')}">14/01/2026 - 14:30</div>
+            </div>
+
+            <!-- Customer Info -->
+            <div class="section-title">Thông tin khách hàng</div>
+            <div class="info-row">
+                <div class="info-label">Họ và tên:</div>
+                <div class="info-value" th:text="${fullName}"></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Số điện thoại:</div>
+                <div class="info-value" th:text="${phone}"></div>
+            </div>
+<!--            <div class="info-row">-->
+<!--                <div class="info-label">Email:</div>-->
+<!--                <div class="info-value" th:text="${props.email}">nguyenvana@email.com</div>-->
+<!--            </div>-->
+
+            <!-- Delivery Info -->
+            <div class="section-title">Thông tin giao hàng</div>
+            <div class="info-row">
+                <div class="info-label">Địa chỉ:</div>
+                <div class="info-value" th:text="${address}"></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Thời gian dự kiến:</div>
+                <div class="info-value">3-5 ngày làm việc</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Phương thức thanh toán:</div>
+                <div class="info-value">Thanh toán khi nhận hàng (COD)</div>
+            </div>
+
+            <!-- Products -->
+            <div class="section-title">Chi tiết đơn hàng</div>
+            <table class="product-table">
+                <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th style="text-align: center;">SL</th>
+                    <th style="text-align: right;">Đơn giá</th>
+                    <th style="text-align: right;">Thành tiền</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${orderItems}">
+                    <td class="product-name" th:text="${item.productName}"></td>
+                    <td style="text-align: center;" th:text="${item.quantity}"></td>
+                    <td style="text-align: right;"
+                        th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+                    <td style="text-align: right;"
+                        th:text="${#numbers.formatDecimal(item.total, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total -->
+        <div class="total-section">
+            <div class="total-row">
+                <span>Tạm tính:</span>
+                <span th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+            </div>
+            <div class="total-row">
+                <span>Phí vận chuyển:</span>
+                <span>0 ₫</span>
+            </div>
+            <div class="total-row">
+                <span th:text="'Giảm giá ' + ${salePercentage} + '%:'"></span>
+                <span style="color: #f56565;" th:text="'-' + ${#numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+            </div>
+            <div class="total-row grand-total">
+                <span>TỔNG CỘNG:</span>
+                <span th:text="${#numbers.formatDecimal(realPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="next-steps">
+            <h3>📞 Các bước tiếp theo</h3>
+            <p>✓ Đội ngũ chăm sóc khách hàng sẽ liên hệ với bạn trong vòng 24 giờ để xác nhận đơn hàng.</p>
+            <p>✓ Đơn hàng sẽ được đóng gói và giao đến bạn trong 3-5 ngày làm việc.</p>
+            <p>✓ Vui lòng giữ liên lạc và để ý điện thoại để nhận hàng đúng hẹn.</p>
+        </div>
+
+        <!-- Thank You -->
+        <div class="thank-you-section">
+            <h2>Trân trọng cảm ơn!</h2>
+            <p>
+                Chúng tôi vô cùng trân trọng sự tin tưởng và ủng hộ của Quý khách.
+                Đây là động lực to lớn để chúng tôi không ngừng nỗ lực nâng cao chất lượng sản phẩm
+                và dịch vụ, mang đến cho bạn những trải nghiệm mua sắm tuyệt vời nhất.
+            </p>
+        </div>
+
+        <!-- Button -->
+<!--        <div class="button-container">-->
+<!--            <a href="#" class="button" th:href="@{/track/{trackNumber}(trackNumber=${trackNumber})}">Theo dõi đơn hàng</a>-->
+<!--        </div>-->
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>Bạn cần hỗ trợ?</strong></p>
+        <p>Hotline: <a href="tel:1900123456">1900 123 456</a> | Email: <a href="mailto:support@example.com">dotranhieu925@gmail.com</a></p>
+        <p>Địa chỉ: 45 Đường Lý Thành Tông, Quận 3, TP. Hồ Chí Minh</p>
+        <p style="margin-top: 15px; font-size: 12px; opacity: 0.7;">
+            © 2026 Funiture Shop. Tất cả các quyền được bảo lưu.
+        </p>
+    </div>
+</div>
+</body>
+</html>

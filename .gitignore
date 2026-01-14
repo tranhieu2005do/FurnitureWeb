@@ -1,0 +1,17 @@
+# IntelliJ
+.idea/
+*.iml
+
+# Build
+/target/
+
+# Logs
+*.log
+
+# Environment / secret
+.env
+application-local.yml
+application-dev.yml
+
+# OS
+.DS_Store
