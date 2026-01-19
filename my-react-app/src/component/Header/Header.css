@@ -1,0 +1,10 @@
+header img{
+  width: 15rem;
+  object-fit: cover;
+}
+
+header h1{
+  font-family: "Roboto Condensed", sans-serif;
+  background: linear-gradient(40deg, #4b695d, #56b656);
+  /* -webkit-background-clip: text; */
+}

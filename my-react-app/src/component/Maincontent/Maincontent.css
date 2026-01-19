@@ -1,0 +1,15 @@
+.content{
+  display: flex;
+  gap: 20px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.content img{
+  width: 10rem;
+}
+.content li {
+  width: 220px;      /* tùy chỉnh */
+  text-align: center;
+}
