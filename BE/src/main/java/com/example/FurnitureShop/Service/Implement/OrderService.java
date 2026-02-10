@@ -160,7 +160,7 @@ public class OrderService implements IOrderService {
                 .userId(userId)
                 .build();
         mailRequest.setNotificationRequest(orderedNotifi);
-        kafkaTemplate.send("Order_Created", mailRequest);
+//        kafkaTemplate.send("Order_Created", mailRequest);
         return OrderResponse.fromEntity(newOrder);
     }
 

@@ -82,6 +82,7 @@ CREATE TABLE ratings(
    user_id bigint not null,
    star int not null,
    created_at datetime,
+   comments longtext,
    foreign key (product_id) references products(id),
    foreign key (user_id) references users(id)
 );
@@ -165,6 +166,7 @@ CREATE TABLE promotions(
    is_active boolean,
    sale int not null,
    product_id bigint not null,
+   created_at datetime default current_timestamp,
    foreign key (product_id) references products(id)
 );
 
@@ -187,3 +189,104 @@ CREATE TABLE message(
    foreign key (conversation_id) references conversations(id),
    foreign key (sender_id) references users(id)
 );
+
+CREATE TABLE promotion_usage(
+   id bigint primary key auto_increment,
+   promotion_id bigint not null,
+   user_id bigint not null,
+   used boolean not null,
+   foreign key (promotion_id) references promotions(id),
+   foreign key (user_id) references users(id)
+);
+alter table promotion_usage
+modify column used datetime not null;
+
+
+create table promotions(
+   id bigint primary key auto_increment,
+   code varchar(100) not null,
+   discount_type enum('BIRTHDAY', 'SHIPPING', 'PRODUCT', 'ORDER'),
+   discount_value int not null, -- PERCENT
+   start_date datetime not null default current_timestamp,
+   end_date datetime not null default current_timestamp,
+   is_personal boolean default false
+);
+
+create table promotion_products(
+   id bigint primary key auto_increment,
+   promotion_id bigint not null,
+   product_id bigint not null,
+   foreign key (promotion_id) references promotions(id),
+   foreign key (product_id) references products(id)
+);
+
+create table promotion_users(
+   id bigint primary key auto_increment,
+   promotion_id bigint not null,
+   user_id bigint not null,
+   used_at datetime,
+   foreign key (promotion_id) references promotions(id),
+   foreign key (user_id) references users(id)
+);
+
+CREATE TABLE numbers (
+  n INT PRIMARY KEY
+);
+
+INSERT INTO numbers (n)
+SELECT a.N + b.N * 10 + c.N * 100 + d.N * 1000 + e.N * 10000 + 1
+FROM 
+(SELECT 0 N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+ UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a,
+(SELECT 0 N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+ UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b,
+(SELECT 0 N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+ UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) c,
+(SELECT 0 N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+ UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) d,
+(SELECT 0 N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+ UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) e
+LIMIT 1000000;
+
+INSERT INTO users (
+  phone,
+  full_name,
+  address,
+  date_of_birth,
+  is_active,
+  password,
+  created_at,
+  updated_at,
+  role_id
+)
+SELECT
+  CONCAT('09', LPAD(n, 9, '0')),
+  CONCAT('User ', n),
+  CONCAT('Address ', n),
+  DATE_ADD('1990-01-01', INTERVAL (n % 10000) DAY),
+  n % 2,
+  'hashed_password',
+  DATE_ADD('2020-01-01', INTERVAL n SECOND),
+  NOW(),
+  (n % 5) + 1
+FROM numbers;
+
+SELECT * FROM users;
+
+CREATE INDEX idx_role_created
+ON users(role_id, created_at DESC);
+
+CREATE INDEX idx_role_created_cover
+ON users(role_id, created_at DESC, id, phone);
+
+
+EXPLAIN
+SELECT id, phone, created_at
+FROM users
+WHERE role_id = 3
+ORDER BY created_at DESC
+LIMIT 20;
+
+show index from users;
+
+

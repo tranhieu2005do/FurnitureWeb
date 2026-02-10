@@ -47,3 +47,10 @@ server:
   port: 8080
 upload:
   dir: src/main/resources/uploads/
+mailServer:
+  host: smtp.gmail.com
+  port: 587
+  email: ${EMAIL}
+  password: ${MAIL_PASSWORD}
+  isSSL: false
+

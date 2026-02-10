@@ -9,7 +9,9 @@ import com.example.FurnitureShop.DTO.Response.UserResponse;
 import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.GlobalExceptionHandler;
 import com.example.FurnitureShop.Exception.NotFoundException;
+import com.example.FurnitureShop.Model.Role;
 import com.example.FurnitureShop.Model.User;
+import com.example.FurnitureShop.Repository.RoleRepository;
 import com.example.FurnitureShop.Repository.UserRepository;
 import com.example.FurnitureShop.Util.JwtUtil;
 import com.nimbusds.jose.*;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import javax.management.relation.RoleNotFoundException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -41,6 +44,7 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final JwtUtil jwtUtil;
 
     public AuthResponse authenticate(AuthRequest authRequest){
@@ -129,6 +133,8 @@ public class AuthService {
 
     @CacheEvict(allEntries = true)
     public AuthResponse register (UserRequest request) {
+
+        log.info("Register user {}", request);
         User new_user = new User();
 
         if(userRepository.existsByPhone(request.getPhone())){
@@ -136,8 +142,11 @@ public class AuthService {
             throw new AuthException("Số điện thoại này đã được dùng để đăng ký trước đó.");
         }
 
+        Role role = roleRepository.findById(4).orElseThrow(() -> new RuntimeException("Role not found"));
+
         new_user.setPhone(request.getPhone());
         new_user.setPassword(passwordEncoder.encode(request.getPassword()));
+        new_user.setRole(role);
         new_user.setEmail(request.getEmail());
         new_user.setActive(true);
         new_user.setFullName(request.getFullName());
