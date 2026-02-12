@@ -4,9 +4,6 @@ import com.example.FurnitureShop.DTO.Request.ProductRequest;
 import com.example.FurnitureShop.DTO.Response.PageResponse;
 import com.example.FurnitureShop.DTO.Response.ProductResponse;
 import com.example.FurnitureShop.DTO.Response.ProductVariantResponse;
-import com.example.FurnitureShop.Model.ProductVariant;
-import com.example.FurnitureShop.Model.ProductVariant.Material;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -16,8 +13,6 @@ public interface IProductService {
 
    ProductResponse createProduct(ProductRequest productRequest);
 
-   Page<ProductResponse> getAllProducts(Pageable pageable);
-
    ProductResponse updateProduct(Long productId, ProductRequest productRequest);
 
    void deleteProduct(Long productId);
@@ -26,9 +21,19 @@ public interface IProductService {
 
    void inActiveProduct(Long productId);
 
-   List<ProductResponse> getProductsByCategoryId(Long categoryId);
+   PageResponse<ProductResponse> getProducts(Pageable pageable,
+                                             BigDecimal minPrice,
+                                             BigDecimal maxPrice,
+                                             Long categoryId,
+                                             Float star,
+                                             Boolean inStock
+                                             );
 
-   PageResponse<ProductResponse> getProductsByRangePrice(Pageable pageable, BigDecimal minPrice, BigDecimal maxPrice);
-
-   List<ProductResponse> getProductsByMaterial(Material material);
+   PageResponse<ProductVariantResponse> getVariants(Pageable pageable,
+                                                    String color,
+                                                    BigDecimal length,
+                                                    BigDecimal height,
+                                                    BigDecimal width,
+                                                    String material,
+                                                    Boolean inStock);
 }

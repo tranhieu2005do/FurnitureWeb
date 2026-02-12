@@ -98,14 +98,6 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    @Cacheable(key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize)")
-    public Page<ProductResponse> getAllProducts(Pageable pageable) {
-        Page<Product> products = productRepository.findAll(pageable);
-        Page<ProductResponse> responsePage = products.map(ProductResponse::fromEntity);
-        return responsePage;
-    }
-
-    @Override
     @CacheEvict(allEntries = true)
     public ProductResponse updateProduct(Long productId, ProductRequest productRequest) {
         Product existingProduct = productRepository.findById(productId)
@@ -190,50 +182,6 @@ public class ProductService implements IProductService {
         productRepository.save(existingProduct);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    @Cacheable(key = "'category_' + #categoryId")
-    public List<ProductResponse> getProductsByCategoryId(Long categoryId) {
-        Category existingCategory = categoryRepository.findById(categoryId).get();
-        return existingCategory.getProducts()
-                .stream()
-                .map(ProductResponse::fromEntity)
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    @Cacheable(
-            key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #page.sort, #minPrice, #maxPrice)"
-    )
-    public PageResponse<ProductResponse> getProductsByRangePrice(Pageable pageable, BigDecimal minPrice, BigDecimal maxPrice) {
-        return PageResponse.fromPage(
-                productRepository.getByRangePrice(pageable, minPrice, maxPrice)
-                        .map(ProductResponse::fromEntity)
-        );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    @Cacheable(key = "'material' + #material")
-    public List<ProductResponse> getProductsByMaterial(Material material) {
-        List<Product> products = productRepository.findAll();
-        List<ProductResponse> responseList = new ArrayList<>();
-        for(Product product: products){
-            List<ProductVariant> variants = product.getProductVariants();
-            boolean check = false;
-            for(ProductVariant variant: variants){
-                if(variant.getMaterial().equals(material)){
-                    check = true;
-                    break;
-                }
-            }
-            if(check){
-                responseList.add(ProductResponse.fromEntity(product));
-            }
-        }
-        return responseList;
-    }
 
     @CacheEvict(allEntries = true)
     public void deleteProductVariant(Long productId, Long variantId) {
@@ -243,5 +191,48 @@ public class ProductService implements IProductService {
         productRepository.save(product);
         productVariantRepository.deleteById(variantId);
     }
+
+    @Transactional(readOnly = true)
+    @Cacheable(
+            key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #minPrice, #maxPrice, #categoryId, #star, #inStock)"
+    )
+    public PageResponse<ProductResponse> getProducts(
+            Pageable pageable,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Long categoryId,
+            Float star,
+            Boolean inStock
+    ){
+        return PageResponse.fromPage(
+                productRepository.getProduct(
+                                pageable,
+                                minPrice,
+                                maxPrice,
+                                categoryId,
+                                star,
+                                inStock)
+                        .map(ProductResponse::fromEntity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+            key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #color, #length, #height, #width, #material, #inStock)"
+    )
+    public PageResponse<ProductVariantResponse> getVariants(Pageable pageable, String color, BigDecimal length, BigDecimal height, BigDecimal width, String material, Boolean inStock) {
+        return PageResponse.fromPage(
+                productVariantRepository.getVariants(
+                        pageable,
+                        color,
+                        length,
+                        height,
+                        width,
+                        material,
+                        inStock
+                ).map(ProductVariantResponse::fromEntity)
+        );
+    }
+
 
 }

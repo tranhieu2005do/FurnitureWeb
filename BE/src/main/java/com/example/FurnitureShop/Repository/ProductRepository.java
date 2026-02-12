@@ -28,4 +28,22 @@ public interface ProductRepository extends JpaRepository<Product,Long> {
     Page<Product> getByRangePrice(Pageable pageable,
                                   @Param("minPrice") BigDecimal minPrice,
                                   @Param("maxPrice") BigDecimal maxPrice);
+
+    @Query("""
+            SELECT p FROM Product p
+              WHERE (:minPrice IS NULL OR p.minPrice >= :minPrice)
+                AND (:maxPrice IS NULL OR p.maxPrice <= :maxPrice)
+                AND (:categoryId IS NULL OR p.category.id = :categoryId)
+                AND (:star IS NULL OR p.regardStar >= :star)
+                AND (:inStock IS NULL OR p.inStockCount > 0)
+            """)
+    Page<Product> getProduct(
+            Pageable pageable,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("categoryId") Long categoryId,
+            @Param("star") Float star,
+            @Param("inStock") Boolean inStock
+    );
+
 }

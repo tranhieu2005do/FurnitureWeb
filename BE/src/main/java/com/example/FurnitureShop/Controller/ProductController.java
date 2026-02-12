@@ -86,17 +86,6 @@ public class ProductController {
                         .build());
     }
 
-    @GetMapping("/material")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getProductsByMaterial(
-            @RequestParam Material material){
-        List<ProductResponse> response = productService.getProductsByMaterial(material);
-        return ResponseEntity.ok(ApiResponse.<List<ProductResponse>>builder()
-                        .statusCode(HttpStatus.OK.value())
-                        .message("Lấy thành công danh sách sản phẩm theo nguyên liệu sản phẩm")
-                        .data(response)
-                        .build());
-    }
-
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @PostMapping("/variant/{variantId}")
     public ResponseEntity<ApiResponse<List<ProductImageResponse>>> uploadVariantImage(
@@ -150,16 +139,36 @@ public class ProductController {
                         .build());
     }
 
-    @GetMapping("/price")
-    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductInRangePrice(
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProducts(
             Pageable pageable,
-            @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice
-            ){
+            @RequestParam(name = "min_price", required = false) BigDecimal minPrice,
+            @RequestParam(name = "max_price", required = false) BigDecimal maxPrice,
+            @RequestParam(name = "category_id", required = false) Long categoryId,
+            @RequestParam(name = "star", required = false) Float star,
+            @RequestParam(name = "in_stock", required = false) Boolean inStock
+    ){
         return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Get successfully")
-                .data(productService.getProductsByRangePrice(pageable, minPrice, maxPrice))
+                .data(productService.getProducts(pageable, minPrice, maxPrice, categoryId, star, inStock))
+                .build());
+    }
+
+    @GetMapping("/variant")
+    public ResponseEntity<ApiResponse<PageResponse<ProductVariantResponse>>> getVariants(
+            Pageable pageable,
+            @RequestParam(name = "color", required = false) String color,
+            @RequestParam(name = "length", required = false) BigDecimal length,
+            @RequestParam(name = "height", required = false) BigDecimal height,
+            @RequestParam(name = "width", required = false) BigDecimal width,
+            @RequestParam(name = "material", required = false) String material,
+            @RequestParam(name = "in_stock", required = false) Boolean inStock
+    ){
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductVariantResponse>>builder()
+                .statusCode(HttpStatus.OK.value())
+                .data(productService.getVariants(pageable, color, length, height, width, material, inStock))
+                .message("Get successfully")
                 .build());
     }
 

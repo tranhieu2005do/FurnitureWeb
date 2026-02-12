@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @Builder
 @Data @AllArgsConstructor @NoArgsConstructor
 public class ProductVariantResponse {
+    private Long productId;
     private BigDecimal height;
     private BigDecimal length;
     private BigDecimal width;
@@ -24,6 +25,7 @@ public class ProductVariantResponse {
 
     public static  ProductVariantResponse fromEntity(ProductVariant product){
         return ProductVariantResponse.builder()
+                .productId(product.getProduct().getId())
                 .height(product.getHeight())
                 .length(product.getLength())
                 .width(product.getWidth())
