@@ -146,12 +146,13 @@ public class ProductController {
             @RequestParam(name = "max_price", required = false) BigDecimal maxPrice,
             @RequestParam(name = "category_id", required = false) Long categoryId,
             @RequestParam(name = "star", required = false) Float star,
-            @RequestParam(name = "in_stock", required = false) Boolean inStock
+            @RequestParam(name = "in_stock", required = false) Boolean inStock,
+            @RequestParam(name = "sort_by", required = false) String sortBy
     ){
         return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Get successfully")
-                .data(productService.getProducts(pageable, minPrice, maxPrice, categoryId, star, inStock))
+                .data(productService.getProducts(pageable, minPrice, maxPrice, categoryId, star, inStock, sortBy))
                 .build());
     }
 
@@ -171,5 +172,7 @@ public class ProductController {
                 .message("Get successfully")
                 .build());
     }
+
+
 
 }

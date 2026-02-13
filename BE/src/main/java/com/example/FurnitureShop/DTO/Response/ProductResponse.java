@@ -1,31 +1,44 @@
 package com.example.FurnitureShop.DTO.Response;
 
 import com.example.FurnitureShop.Model.Product;
+import com.example.FurnitureShop.Model.PromotionProducts;
+import com.example.FurnitureShop.Repository.PromotionProductRepository;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Builder
 @Data
-@NoArgsConstructor @AllArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductResponse {
 
     private Long id;
+
     private String name;
+
     private String description;
 
-    @JsonProperty("category_id")
-    private Long categoryId;
-
-    @JsonProperty("category_name")
+    @JsonProperty("category")
     private String categoryName;
 
-    @JsonProperty("in_stock")
+    @JsonProperty("stock")
     private Long inStock;
+
+    @JsonProperty("price")
+    private BigDecimal price;
+
+    @JsonProperty("original_price")
+    private BigDecimal originalPrice;
+
+    @JsonProperty("is_new")
+    private Boolean isNew;
+
+    @JsonProperty("discount")
+    private Integer discount;
 
     @JsonProperty("rated_star")
     private Float rating;
@@ -39,24 +52,6 @@ public class ProductResponse {
     @JsonProperty("purchase_count")
     private int purchaseCount;
 
-    private List<ProductVariantResponse> variants;
-
-    public static ProductResponse fromEntity(Product product) {
-        return ProductResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .categoryId(product.getCategory().getId())
-                .categoryName(product.getCategory().getName())
-                .inStock(product.getInStockCount())
-                .isActive(product.isActive())
-                .ratingCount(product.getRatingCount())
-                .purchaseCount(product.getPurchaseCount())
-                .rating(product.getRegardStar())
-                .variants(product.getProductVariants()
-                        .stream()
-                        .map(ProductVariantResponse::fromEntity)
-                        .toList())
-                .build();
-    }
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
 }

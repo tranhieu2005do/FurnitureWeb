@@ -26,7 +26,8 @@ public interface IProductService {
                                              BigDecimal maxPrice,
                                              Long categoryId,
                                              Float star,
-                                             Boolean inStock
+                                             Boolean inStock,
+                                             String sortBy
                                              );
 
    PageResponse<ProductVariantResponse> getVariants(Pageable pageable,

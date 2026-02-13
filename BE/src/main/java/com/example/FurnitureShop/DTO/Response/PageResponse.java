@@ -20,6 +20,9 @@ public class PageResponse<T> {
 
     private List<T> content;
 
+    @JsonProperty("total_elements")
+    private int totalElements;
+
     @JsonProperty("page_number")
     private int pageNumber;
 
@@ -45,6 +48,7 @@ public class PageResponse<T> {
         if(page == null){
             return PageResponse.<T>builder()
                     .pageSize(0)
+                    .totalElements(0)
                     .pageNumber(0)
                     .totalPages(0)
                     .hasNext(false)
@@ -63,6 +67,7 @@ public class PageResponse<T> {
                 .hasPrevious(page.hasPrevious())
                 .isFirst(page.isFirst())
                 .isLast(page.isLast())
+                .totalElements(page.getNumberOfElements())
                 .build();
     }
 }

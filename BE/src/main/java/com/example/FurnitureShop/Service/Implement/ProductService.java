@@ -12,11 +12,15 @@ import com.example.FurnitureShop.Model.Category;
 import com.example.FurnitureShop.Model.Product;
 import com.example.FurnitureShop.Model.ProductVariant;
 import com.example.FurnitureShop.Model.ProductVariant.Material;
+import com.example.FurnitureShop.Model.PromotionProducts;
 import com.example.FurnitureShop.Repository.CategoryRepository;
 import com.example.FurnitureShop.Repository.ProductRepository;
 import com.example.FurnitureShop.Repository.ProductVariantRepository;
+import com.example.FurnitureShop.Repository.PromotionProductRepository;
 import com.example.FurnitureShop.Service.Interface.IProductService;
 import jakarta.persistence.Column;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
@@ -34,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +52,52 @@ public class ProductService implements IProductService {
     private final CategoryRepository categoryRepository;
     private final ProductVariantRepository productVariantRepository;
     private final ProductVariantService productVariantService;
+
+    private final PromotionProductRepository promotionProductRepository;
+
+    public ProductResponse mapToResponse(Product product) {
+
+        ProductResponse response = ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .categoryName(product.getCategory().getName())
+                .inStock(product.getInStockCount())
+                .rating(product.getRegardStar())
+                .isActive(product.isActive())
+                .createdAt(product.getCreatedAt())
+                .ratingCount(product.getRatingCount())
+                .purchaseCount(product.getPurchaseCount())
+                .build();
+
+        Integer discount = 0;
+        BigDecimal price = product.getMinPrice();
+        BigDecimal originalPrice = product.getMinPrice();
+
+        PromotionProducts promotion =
+                promotionProductRepository
+                        .findActivePromotionProductByProductId(product.getId());
+
+        if (promotion != null) {
+            discount = promotion.getPromotion().getDiscountValue();
+
+            price = product.getMinPrice()
+                    .multiply(BigDecimal.valueOf(100 - discount))
+                    .divide(BigDecimal.valueOf(100));
+            response.setOriginalPrice(originalPrice);
+        }
+
+        boolean isNew = ChronoUnit.DAYS.between(
+                product.getCreatedAt(),
+                LocalDateTime.now()
+        ) <= 7;
+
+        response.setDiscount(discount);
+        response.setPrice(price);
+        response.setIsNew(isNew);
+
+        return response;
+    }
 
     @Override
     @CacheEvict(allEntries = true)
@@ -69,6 +120,8 @@ public class ProductService implements IProductService {
 
         List<ProductVariant> newVariants = new ArrayList<>();
         Long inStock = 0L;
+        BigDecimal minPrice = BigDecimal.valueOf(Long.MAX_VALUE);
+        BigDecimal maxPrice = BigDecimal.ZERO;
         for(ProductVariantRequest variantRequest : productRequest.getVariants()){
             ProductVariant newVariant = ProductVariant.builder()
                     .product(newProduct)
@@ -81,6 +134,10 @@ public class ProductService implements IProductService {
                     .inStock(variantRequest.getInStock())
                     .build();
 
+            minPrice = variantRequest.getPrice()
+                    .min(minPrice);
+            maxPrice = variantRequest.getPrice()
+                    .max(maxPrice);
             inStock += variantRequest.getInStock();
             if(newVariant.getInStock() > 0){
                 newVariant.setActive(true);
@@ -94,7 +151,7 @@ public class ProductService implements IProductService {
         newProduct.setProductVariants(newVariants);
         newProduct.setInStockCount(inStock);
         productRepository.save(newProduct);
-        return ProductResponse.fromEntity(newProduct);
+        return mapToResponse(newProduct);
     }
 
     @Override
@@ -143,7 +200,7 @@ public class ProductService implements IProductService {
         }
         existingProduct.setUpdatedAt(LocalDateTime.now());
         productRepository.save(existingProduct);
-        return ProductResponse.fromEntity(existingProduct);
+        return mapToResponse(existingProduct);
     }
 
     @Override
@@ -192,9 +249,24 @@ public class ProductService implements IProductService {
         productVariantRepository.deleteById(variantId);
     }
 
+    private Sort buildSort(String sortBy) {
+        if (sortBy == null) {
+            return Sort.by("id").descending();
+        }
+
+        return switch (sortBy) {
+            case "price_asc" -> Sort.by("minPrice").ascending();
+            case "price_desc" -> Sort.by("maxPrice").descending();
+            case "rating" -> Sort.by("regardStar").descending();
+            case "popular" -> Sort.by("purchaseCount").descending();
+            case "newest" -> Sort.by("createdAt").descending();
+            default -> Sort.by("id").descending();
+        };
+    }
+
     @Transactional(readOnly = true)
     @Cacheable(
-            key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #minPrice, #maxPrice, #categoryId, #star, #inStock)"
+            key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #sortBy, #minPrice, #maxPrice, #categoryId, #star, #inStock)"
     )
     public PageResponse<ProductResponse> getProducts(
             Pageable pageable,
@@ -202,17 +274,26 @@ public class ProductService implements IProductService {
             BigDecimal maxPrice,
             Long categoryId,
             Float star,
-            Boolean inStock
+            Boolean inStock,
+            String sortBy
     ){
+        Sort sort = buildSort(sortBy);
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
         return PageResponse.fromPage(
                 productRepository.getProduct(
-                                pageable,
+                                sortedPageable,
                                 minPrice,
                                 maxPrice,
                                 categoryId,
                                 star,
                                 inStock)
-                        .map(ProductResponse::fromEntity));
+                        .map(this::mapToResponse));
     }
 
     @Override

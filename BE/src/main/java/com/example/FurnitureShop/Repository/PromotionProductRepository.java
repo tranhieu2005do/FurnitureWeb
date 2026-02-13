@@ -22,4 +22,11 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
             WHERE p.product.id = :productId
             """)
     List<PromotionProducts> filterByProductId(@Param("productId") Long productId);
+
+    @Query("""
+            SELECT pd FROM PromotionProducts pd
+            WHERE pd.product.id = :productId
+               AND pd.promotion.endDate >= CURRENT_TIMESTAMP
+            """)
+    PromotionProducts findActivePromotionProductByProductId(@Param("productId") Long productId);
 }

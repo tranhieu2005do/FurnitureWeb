@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
-// import { productService } from '../api';
+import React, { useState, useEffect, useMemo } from 'react';
 import './ProductListPage.css';
 import NavBar from '../Navbar/NavBar';
 import productService from '../../api/ProductService';
 import categoryService from '../../api/CategoriesService';
-import ratingService from '../../api/RatingService';
 import ProductCard from './ProductCard/ProductCard';
 
 export default function ProductListPage() {
@@ -12,51 +10,47 @@ export default function ProductListPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState([]);
-  
-  // Filter states
   const [filters, setFilters] = useState({
     category: 0,
-    priceRange: [0, 100000000],
     materials: [],
     colors: [],
+    priceRange: [],
+    star: 0,
     inStock: false,
   });
 
-  // const [filter, setFilter] = useState({
-  //   page: 0,
-  //   size: 8,
-  //   minPrice: "",
-  //   maxPrice: "",
-  //   categoryId: "",
-  //   star: "",
-  //   inStock: ""
-  // });
-
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  // Mock data - thay thế bằng API call thực tế
+  const [totalElements, setTotalElements] = useState(0);
+
   useEffect(() => {
+    const [min_price, max_price] = filters.priceRange && filters.priceRange.length === 2 ? filters.priceRange : [0, 0];
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        console.log("Sort: ",sortBy);
+        // api
         const res = await productService.getProducts({
-          page: 0,
+          page: currentPage - 1,
           size: 10,
-          // min_price: 1000000,
-          // max_price: 5000000,
-          in_stock: true,
+          min_price: min_price !== 0 ? min_price : null,
+          max_price: max_price !== 0 ? max_price : null,
+          category_id: filters.category !== 0 ? filters.category : null,
+          star: filters.star !== 0 ? filters.star : null,
+          in_stock: filters.inStock,
+          sortBy: sortBy
         });
 
-        console.log("Products Response: ", res.data.content);
-        // Mock data
-        setTimeout(() => {
-          setProducts(mockProducts);
-          setTotalPages(3);
-          setLoading(false);
-        }, 500);
+        console.log("Products Response: ", res.data);
+        // map data
+        const mappedProducts = res.data.content.map(p => transformProduct(p));
+        setProducts(mappedProducts);
+        setTotalElements(res.data.total_elements);
+        setTotalPages(res.data.total_pages);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching products:', error);
         setLoading(false);
@@ -65,10 +59,27 @@ export default function ProductListPage() {
     fetchProducts();
   }, [currentPage, sortBy, filters]);
 
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      switch (sortBy) {
+        case 'price_asc':
+          return a.price - b.price;
+        case 'price_desc':
+          return b.price - a.price;
+        case 'popular':
+          return b.purchase - a.purchase;
+        case 'rating':
+          return b.rating - a.rating;
+        default:
+          return 0;
+      }
+    });
+  }, [products, sortBy]);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoryService.getCategories();
+        const response = await categoryService.getRootCategories();
         console.log("Response:", response);
         setCategories(response.data);
       } catch (error) {
@@ -79,7 +90,7 @@ export default function ProductListPage() {
     fetchCategories();
   }, []);
 
-
+  
 
   const STAR_OPTIONS = [
     { value: 4.5, label: '4.5 ⭐ trở lên' },
@@ -158,7 +169,7 @@ export default function ProductListPage() {
             </p>
           </div>
           <div className="header-stats">
-            <span className="result-count">Hiển thị {products.length} / 156 sản phẩm</span>
+            <span className="result-count">Hiển thị {products.length} / {totalElements} sản phẩm</span>
           </div>
         </div>
       </div>
@@ -364,7 +375,8 @@ export default function ProductListPage() {
           ) : (
             <>
               <div className={`products-container ${viewMode}`}>
-                {products.map((product, index) => (
+                {console.log(sortedProducts)}
+                {sortedProducts.map((product, index) => (
                   <ProductCard 
                     key={product.id} 
                     product={product} 
@@ -427,104 +439,21 @@ const getColorCode = (value) => {
   return colorMap[value] || '#ccc';
 };
 
-// Mock data
-const mockProducts = [
-  {
-    id: 1,
-    name: 'Sofa Mondrian 3 Chỗ',
-    category: 'Phòng Khách',
-    price: 28500000,
-    originalPrice: 35000000,
-    discount: 20,
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
-    rating: 4.8,
-    reviews: 124,
-    stock: 8,
-    isNew: true,
-    description: 'Sofa cao cấp với thiết kế hiện đại, chất liệu vải bố cao cấp'
-  },
-  {
-    id: 2,
-    name: 'Bàn Làm Việc Oak Premium',
-    category: 'Phòng Làm Việc',
-    price: 12800000,
-    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800&h=600&fit=crop',
-    rating: 4.9,
-    reviews: 89,
-    stock: 15,
-    description: 'Bàn làm việc gỗ sồi tự nhiên, thiết kế tối giản'
-  },
-  {
-    id: 3,
-    name: 'Giường Ngủ Luxury King',
-    category: 'Phòng Ngủ',
-    price: 35900000,
-    originalPrice: 42000000,
-    discount: 15,
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&h=600&fit=crop',
-    rating: 5.0,
-    reviews: 67,
-    stock: 3,
-    description: 'Giường ngủ cao cấp với đầu giường bọc da thật'
-  },
-  {
-    id: 4,
-    name: 'Bộ Bàn Ăn Marble 6 Ghế',
-    category: 'Phòng Ăn',
-    price: 45200000,
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800&h=600&fit=crop',
-    rating: 4.7,
-    reviews: 92,
-    stock: 0,
-    description: 'Bộ bàn ăn mặt đá marble tự nhiên sang trọng'
-  },
-  {
-    id: 5,
-    name: 'Tủ Quần Áo 4 Cánh',
-    category: 'Phòng Ngủ',
-    price: 18900000,
-    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800&h=600&fit=crop',
-    rating: 4.6,
-    reviews: 56,
-    stock: 12,
-    isNew: true,
-    description: 'Tủ quần áo gỗ công nghiệp cao cấp, thiết kế hiện đại'
-  },
-  {
-    id: 6,
-    name: 'Ghế Sofa Đơn Nordic',
-    category: 'Phòng Khách',
-    price: 8500000,
-    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=800&h=600&fit=crop',
-    rating: 4.8,
-    reviews: 143,
-    stock: 20,
-    description: 'Ghế sofa đơn phong cách Bắc Âu tối giản'
-  },
-  {
-    id: 7,
-    name: 'Bàn Trà Gỗ Óc Chó',
-    category: 'Phòng Khách',
-    price: 15600000,
-    originalPrice: 18000000,
-    discount: 13,
-    image: 'https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=800&h=600&fit=crop',
-    rating: 4.9,
-    reviews: 78,
-    stock: 6,
-    description: 'Bàn trà gỗ óc chó tự nhiên, vân gỗ đẹp tự nhiên'
-  },
-  {
-    id: 8,
-    name: 'Kệ Sách Treo Tường',
-    category: 'Phòng Làm Việc',
-    price: 6200000,
-    image: 'https://images.unsplash.com/photo-1594620302200-9a762244a156?w=800&h=600&fit=crop',
-    rating: 4.5,
-    reviews: 34,
-    stock: 25,
-    description: 'Kệ sách treo tường kim loại kết hợp gỗ'
-  },
-];
+const transformProduct = (product) => {
+  return {
+    id: product.id, // tạm thời nếu API chưa trả id
+    name: product.name,
+    category: product.category,
+    price: product.price, // nếu API chưa có
+    originalPrice: product.original_price,
+    discount: product.discount,
+    image: "https://via.placeholder.com/800x600",
+    rating: product.rated_star,
+    reviews: product.rating_count,
+    stock: product.stock,
+    isNew: product.is_new,
+    description: product.description,
+    purchase: product.purchase_count
+  };
+};
 
-// export { ProductCard, getColorCode };
