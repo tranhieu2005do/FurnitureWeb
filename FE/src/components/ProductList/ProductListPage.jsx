@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 // import { productService } from '../api';
 import './ProductListPage.css';
 import NavBar from '../Navbar/NavBar';
+import productService from '../../api/ProductService';
+import categoryService from '../../api/CategoriesService';
+import ProductCard from './ProductCard/ProductCard';
 
 export default function ProductListPage() {
   const [products, setProducts] = useState([]);
@@ -10,10 +13,12 @@ export default function ProductListPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [categories, setCategories] = useState([]);
+
   
   // Filter states
   const [filters, setFilters] = useState({
-    category: '',
+    category: 0,
     priceRange: [0, 100000000],
     materials: [],
     colors: [],
@@ -52,17 +57,49 @@ export default function ProductListPage() {
     }
   };
 
-  const categories = [
-    { id: 'all', name: 'Tất cả', count: 156 },
-    { id: 'living-room', name: 'Phòng Khách', count: 45 },
-    { id: 'bedroom', name: 'Phòng Ngủ', count: 38 },
-    { id: 'dining-room', name: 'Phòng Ăn', count: 28 },
-    { id: 'office', name: 'Phòng Làm Việc', count: 32 },
-    { id: 'outdoor', name: 'Ngoài Trời', count: 13 },
-  ];
+  useEffect(() => {
+    console.log("useEffect chạy");
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryService.getCategories();
+        console.log("Response:", response);
+        setCategories(response.data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
 
-  const materials = ['Gỗ Sồi', 'Gỗ Tần Bì', 'Vải Bố', 'Da Thật', 'Kim Loại', 'Marble'];
-  const colors = ['Nâu', 'Trắng', 'Đen', 'Xám', 'Be', 'Xanh'];
+    fetchCategories();
+  }, []);
+
+  // const categories = [
+  //   { id: 'all', name: 'Tất cả', count: 156 },
+  //   { id: 'living-room', name: 'Phòng Khách', count: 45 },
+  //   { id: 'bedroom', name: 'Phòng Ngủ', count: 38 },
+  //   { id: 'dining-room', name: 'Phòng Ăn', count: 28 },
+  //   { id: 'office', name: 'Phòng Làm Việc', count: 32 },
+  //   { id: 'outdoor', name: 'Ngoài Trời', count: 13 },
+  // ];
+
+  const materials = [
+    { label: 'Gỗ Sồi', value: 'GO_SOI' },
+    { label: 'Gỗ Tần Bì', value: 'GO_TAN_BI' },
+    { label: 'Gỗ Óc Chó', value: 'GO_OC_CHO' },
+    { label: 'Inox', value: 'INOX' },
+    { label: 'Nhôm', value: 'NHOM' },
+    { label: 'Marble', value: 'MARBLE' },
+    { label: 'Granite', value: 'GRANITE' },
+    { label: 'Vải', value: 'VAI' }
+  ];
+  const colors = [
+    { label: 'Be', value: 'BE' },
+    { label: 'Trắng', value: 'TRANG' },
+    { label: 'Đen', value: 'DEN' },
+    { label: 'Xám Nhạt', value: 'XAM_NHAT' },
+    { label: 'Xám Đậm', value: 'XAM_DAM' },
+    { label: 'Nâu Gỗ Nhạt', value: 'NAU_GO_NHAT' },
+    { label: 'Nâu Gỗ Đậm', value: 'NAU_GO_DAM' }
+  ];
   const priceRanges = [
     { label: 'Dưới 5 triệu', value: [0, 5000000] },
     { label: '5 - 10 triệu', value: [5000000, 10000000] },
@@ -91,7 +128,7 @@ export default function ProductListPage() {
 
   const clearFilters = () => {
     setFilters({
-      category: '',
+      category: 0,
       priceRange: [0, 100000000],
       materials: [],
       colors: [],
@@ -148,7 +185,6 @@ export default function ProductListPage() {
                   />
                   <span className="option-label">
                     {cat.name}
-                    <span className="option-count">({cat.count})</span>
                   </span>
                 </label>
               ))}
@@ -177,14 +213,16 @@ export default function ProductListPage() {
           <div className="filter-section">
             <h4 className="filter-title">Chất Liệu</h4>
             <div className="filter-options">
-              {materials.map(material => (
-                <label key={material} className="filter-option">
+              {materials.map((material) => (
+                <label key={material.value} className="filter-option">
                   <input
                     type="checkbox"
-                    checked={filters.materials.includes(material)}
-                    onChange={() => handleArrayFilterToggle('materials', material)}
+                    checked={filters.materials.includes(material.value)}
+                    onChange={() =>
+                      handleArrayFilterToggle('materials', material.value)
+                    }
                   />
-                  <span className="option-label">{material}</span>
+                  <span className="option-label">{material.label}</span>
                 </label>
               ))}
             </div>
@@ -196,12 +234,17 @@ export default function ProductListPage() {
             <div className="color-options">
               {colors.map(color => (
                 <button
-                  key={color}
-                  className={`color-option ${filters.colors.includes(color) ? 'active' : ''}`}
-                  onClick={() => handleArrayFilterToggle('colors', color)}
-                  title={color}
+                  key={color.value}
+                  className={`color-option ${
+                    filters.colors.includes(color.value) ? 'active' : ''
+                  }`}
+                  onClick={() => handleArrayFilterToggle('colors', color.value)}
+                  title={color.label}
                 >
-                  <span className="color-circle" style={{ background: getColorCode(color) }}></span>
+                  <span
+                    className="color-circle"
+                    style={{ background: getColorCode(color.value) }}
+                  ></span>
                 </button>
               ))}
             </div>
@@ -334,97 +377,20 @@ export default function ProductListPage() {
   );
 }
 
-// Product Card Component
-function ProductCard({ product, viewMode, animationDelay }) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-
-  return (
-    <div 
-      className={`product-card-item ${viewMode}`}
-      style={{ animationDelay: `${animationDelay}s` }}
-    >
-      <div className="product-image-section">
-        <img src={product.image} alt={product.name} className="product-img" />
-        {product.discount && (
-          <span className="discount-badge">-{product.discount}%</span>
-        )}
-        {product.isNew && <span className="new-badge">Mới</span>}
-        
-        <div className="quick-actions">
-          <button 
-            className={`wishlist-btn ${isWishlisted ? 'active' : ''}`}
-            onClick={() => setIsWishlisted(!isWishlisted)}
-            title="Yêu thích"
-          >
-            {isWishlisted ? '❤️' : '🤍'}
-          </button>
-          <button className="quick-view-action" title="Xem nhanh">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div className="product-details-section">
-        <div className="product-meta">
-          <span className="product-cat">{product.category}</span>
-          <div className="product-rating">
-            <span className="stars">⭐ {product.rating}</span>
-            <span className="reviews">({product.reviews})</span>
-          </div>
-        </div>
-
-        <h3 className="product-title">
-          <a href={`/product/${product.id}`}>{product.name}</a>
-        </h3>
-
-        {viewMode === 'list' && (
-          <p className="product-desc">{product.description}</p>
-        )}
-
-        <div className="product-footer-section">
-          <div className="price-section">
-            {product.originalPrice && (
-              <span className="original-price">{product.originalPrice.toLocaleString()}đ</span>
-            )}
-            <span className="current-price">{product.price.toLocaleString()}đ</span>
-          </div>
-
-          <button className="add-cart-action">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="9" cy="21" r="1"/>
-              <circle cx="20" cy="21" r="1"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-            </svg>
-            {viewMode === 'list' && <span>Thêm vào giỏ</span>}
-          </button>
-        </div>
-
-        {product.stock <= 5 && product.stock > 0 && (
-          <span className="stock-warning">Chỉ còn {product.stock} sản phẩm</span>
-        )}
-        {product.stock === 0 && (
-          <span className="out-of-stock">Hết hàng</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Helper function
-function getColorCode(colorName) {
+const getColorCode = (value) => {
   const colorMap = {
-    'Nâu': '#8b7355',
-    'Trắng': '#ffffff',
-    'Đen': '#000000',
-    'Xám': '#808080',
-    'Be': '#f5f5dc',
-    'Xanh': '#4a90e2'
+    BE: '#f5f5dc',
+    TRANG: '#ffffff',
+    DEN: '#000000',
+    XAM_NHAT: '#d3d3d3',
+    XAM_DAM: '#808080',
+    NAU_GO_NHAT: '#c8a165',
+    NAU_GO_DAM: '#8b5a2b'
   };
-  return colorMap[colorName] || '#cccccc';
-}
+
+  return colorMap[value] || '#ccc';
+};
 
 // Mock data
 const mockProducts = [
