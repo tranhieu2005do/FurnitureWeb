@@ -1,6 +1,9 @@
 package com.example.FurnitureShop.Repository;
 
+import com.example.FurnitureShop.Model.Interface.ProductRatingAvg;
 import com.example.FurnitureShop.Model.Rating;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,5 +27,16 @@ public interface RatingRepository extends JpaRepository<Rating,Long> {
     List<Rating> filterByProduct(@Param("productId") Long productId,
                                  @Param("star") Integer star,
                                  @Param("haveComments") boolean haveComments);
+
+
+    @Query("""
+            SELECT COALESCE(AVG(r.star),0)
+            FROM Rating r
+            WHERE r.product.id = :productId
+            """)
+    Double getAvgRatingByProductId(@Param("productId") Long productId);
+
+
+
 }
 

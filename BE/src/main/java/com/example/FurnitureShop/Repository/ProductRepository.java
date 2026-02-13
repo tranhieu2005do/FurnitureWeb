@@ -5,6 +5,7 @@ import com.example.FurnitureShop.Model.Promotion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,4 +47,11 @@ public interface ProductRepository extends JpaRepository<Product,Long> {
             @Param("inStock") Boolean inStock
     );
 
+    @Modifying
+    @Query("""
+            UPDATE Product p
+            SET p.regardStar = :avgStar
+            WHERE p.id = :productId
+            """)
+    void updateRatedStarProduct(@Param("productId") Long productId, @Param("avg_star") Double avgStar);
 }

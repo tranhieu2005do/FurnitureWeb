@@ -4,6 +4,7 @@ import './ProductListPage.css';
 import NavBar from '../Navbar/NavBar';
 import productService from '../../api/ProductService';
 import categoryService from '../../api/CategoriesService';
+import ratingService from '../../api/RatingService';
 import ProductCard from './ProductCard/ProductCard';
 
 export default function ProductListPage() {
@@ -14,7 +15,6 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState([]);
-
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -25,40 +25,47 @@ export default function ProductListPage() {
     inStock: false,
   });
 
+  // const [filter, setFilter] = useState({
+  //   page: 0,
+  //   size: 8,
+  //   minPrice: "",
+  //   maxPrice: "",
+  //   categoryId: "",
+  //   star: "",
+  //   inStock: ""
+  // });
+
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   // Mock data - thay thế bằng API call thực tế
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const res = await productService.getProducts({
+          page: 0,
+          size: 10,
+          // min_price: 1000000,
+          // max_price: 5000000,
+          in_stock: true,
+        });
+
+        console.log("Products Response: ", res.data.content);
+        // Mock data
+        setTimeout(() => {
+          setProducts(mockProducts);
+          setTotalPages(3);
+          setLoading(false);
+        }, 500);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setLoading(false);
+      }
+    };
     fetchProducts();
   }, [currentPage, sortBy, filters]);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      // Uncomment khi có API thực
-      // const response = await productService.getAllProducts({
-      //   page: currentPage,
-      //   limit: 12,
-      //   sort: sortBy,
-      //   ...filters
-      // });
-      // setProducts(response.products);
-      // setTotalPages(response.totalPages);
-      
-      // Mock data
-      setTimeout(() => {
-        setProducts(mockProducts);
-        setTotalPages(3);
-        setLoading(false);
-      }, 500);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    console.log("useEffect chạy");
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getCategories();
@@ -72,14 +79,14 @@ export default function ProductListPage() {
     fetchCategories();
   }, []);
 
-  // const categories = [
-  //   { id: 'all', name: 'Tất cả', count: 156 },
-  //   { id: 'living-room', name: 'Phòng Khách', count: 45 },
-  //   { id: 'bedroom', name: 'Phòng Ngủ', count: 38 },
-  //   { id: 'dining-room', name: 'Phòng Ăn', count: 28 },
-  //   { id: 'office', name: 'Phòng Làm Việc', count: 32 },
-  //   { id: 'outdoor', name: 'Ngoài Trời', count: 13 },
-  // ];
+
+
+  const STAR_OPTIONS = [
+    { value: 4.5, label: '4.5 ⭐ trở lên' },
+    { value: 4.0, label: '4.0 ⭐ trở lên' },
+    { value: 3.5, label: '3.5 ⭐ trở lên' },
+    { value: 3.0, label: '3.0 ⭐ trở lên' },
+  ];
 
   const materials = [
     { label: 'Gỗ Sồi', value: 'GO_SOI' },
@@ -89,7 +96,8 @@ export default function ProductListPage() {
     { label: 'Nhôm', value: 'NHOM' },
     { label: 'Marble', value: 'MARBLE' },
     { label: 'Granite', value: 'GRANITE' },
-    { label: 'Vải', value: 'VAI' }
+    { label: 'Vải', value: 'VAI' },
+    { label: 'Kính', value: 'KINH'}
   ];
   const colors = [
     { label: 'Be', value: 'BE' },
@@ -246,6 +254,33 @@ export default function ProductListPage() {
                     style={{ background: getColorCode(color.value) }}
                   ></span>
                 </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Đánh giá sao → star (GET /products) ── */}
+          <div className="filter-section">
+            <h4 className="filter-title">Đánh Giá</h4>
+            <div className="filter-options">
+              <label className="filter-option">
+                <input
+                  type="radio"
+                  name="star"
+                  checked={filters.star === null}
+                  onChange={() => handleFilterChange('star', null)}
+                />
+                <span className="option-label">Tất cả</span>
+              </label>
+              {STAR_OPTIONS.map(opt => (
+                <label key={opt.value} className="filter-option">
+                  <input
+                    type="radio"
+                    name="star"
+                    checked={filters.star === opt.value}
+                    onChange={() => handleFilterChange('star', opt.value)}
+                  />
+                  <span className="option-label">{opt.label}</span>
+                </label>
               ))}
             </div>
           </div>

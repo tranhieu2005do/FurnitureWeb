@@ -1,6 +1,7 @@
 package com.example.FurnitureShop.DTO.Response;
 
 import com.example.FurnitureShop.Model.ProductVariant.Material;
+import com.example.FurnitureShop.Model.ProductVariant.Color;
 import com.example.FurnitureShop.Model.ProductVariant;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -18,7 +19,7 @@ public class ProductVariantResponse {
     private BigDecimal length;
     private BigDecimal width;
     private BigDecimal price;
-    private String color;
+    private Color color;
     private Material material;
     @JsonProperty("is_active")
     private boolean isActive;

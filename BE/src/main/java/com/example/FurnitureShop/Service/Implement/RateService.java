@@ -1,6 +1,8 @@
 package com.example.FurnitureShop.Service.Implement;
 
 import com.example.FurnitureShop.DTO.Request.RatingRequest;
+import com.example.FurnitureShop.DTO.Response.PageResponse;
+import com.example.FurnitureShop.DTO.Response.ProductRatingAvgResponse;
 import com.example.FurnitureShop.DTO.Response.RatingResponse;
 import com.example.FurnitureShop.Exception.NotFoundException;
 import com.example.FurnitureShop.Model.Product;
@@ -14,6 +16,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +37,7 @@ public class RateService implements RatingService {
     @Override
     @CacheEvict(allEntries = true)
     public RatingResponse createrating(RatingRequest request) {
+        // create new rate
         User customer = userRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new NotFoundException("Customer Not Found"));
         Product product = productRepository.findById(request.getProductId())
@@ -46,6 +50,14 @@ public class RateService implements RatingService {
                 .createdAt(LocalDateTime.now())
                 .build();
         ratingRepository.save(newRating);
+
+        // Update avg_star
+        Double oldAvgStar = ratingRepository.getAvgRatingByProductId(product.getId());
+        Double newAvgStar = (oldAvgStar * product.getRatingCount() + request.getRate()) / (product.getRatingCount() + 1);
+        product.setRatingCount(product.getRatingCount() + 1);
+        productRepository.updateRatedStarProduct(product.getId(), newAvgStar);
+        productRepository.save(product);
+
         return RatingResponse.fromEntity(newRating);
     }
 

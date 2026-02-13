@@ -33,6 +33,9 @@ public class ProductResponse {
     @JsonProperty("is_active")
     private boolean isActive;
 
+    @JsonProperty("rating_count")
+    private Long ratingCount;
+
     @JsonProperty("purchase_count")
     private int purchaseCount;
 
@@ -47,6 +50,7 @@ public class ProductResponse {
                 .categoryName(product.getCategory().getName())
                 .inStock(product.getInStockCount())
                 .isActive(product.isActive())
+                .ratingCount(product.getRatingCount())
                 .purchaseCount(product.getPurchaseCount())
                 .rating(product.getRegardStar())
                 .variants(product.getProductVariants()

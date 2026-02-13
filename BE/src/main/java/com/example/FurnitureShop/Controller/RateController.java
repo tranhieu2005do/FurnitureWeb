@@ -2,10 +2,13 @@ package com.example.FurnitureShop.Controller;
 
 import com.example.FurnitureShop.DTO.Request.RatingRequest;
 import com.example.FurnitureShop.DTO.Response.ApiResponse;
+import com.example.FurnitureShop.DTO.Response.PageResponse;
+import com.example.FurnitureShop.DTO.Response.ProductRatingAvgResponse;
 import com.example.FurnitureShop.DTO.Response.RatingResponse;
 import com.example.FurnitureShop.Service.Implement.RateService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

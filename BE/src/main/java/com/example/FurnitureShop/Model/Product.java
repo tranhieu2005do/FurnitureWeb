@@ -53,6 +53,9 @@ public class Product {
     @Column(name = "instock")
     private Long inStockCount;
 
+    @Column(name = "rating_count")
+    private Long ratingCount;
+
     @OneToMany(mappedBy = "product",  fetch = FetchType.LAZY,  cascade = CascadeType.ALL,  orphanRemoval = true)
     List<ProductVariant> productVariants = new ArrayList<>();
 

@@ -1,5 +1,6 @@
 package com.example.FurnitureShop.DTO.Request;
 
+import com.example.FurnitureShop.Model.ProductVariant.Color;
 import com.example.FurnitureShop.Model.ProductVariant.Material;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +15,7 @@ public class UpdateVariantRequest {
 
     @NotBlank(message = "Bạn nên thay đổi giá.")
     private BigDecimal price;
-    private String color;
+    private Color color;
     private Material material;
     @JsonProperty("in_stock")
     private Long inStock;
