@@ -225,6 +225,12 @@ public class ProductService implements IProductService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(key = "#productId")
+    public ProductResponse getProductByProductId(Long productId){
+        return mapToResponse(productRepository.findById(productId).get());
+    }
+
     @Override
     @CacheEvict(allEntries = true)
     public void inActiveProduct(Long productId) {

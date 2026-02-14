@@ -55,10 +55,10 @@ public class ProductController {
         ProductVariantResponse productVariantResponse = productVariantService.insertProductVariant(productId, productVariantRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<ProductVariantResponse>builder()
-                        .data(productVariantResponse)
-                        .statusCode(HttpStatus.CREATED.value())
-                        .message("Thêm thành công mẫu sản phẩm mới")
-                        .build());
+                .data(productVariantResponse)
+                .statusCode(HttpStatus.CREATED.value())
+                .message("Thêm thành công mẫu sản phẩm mới")
+                .build());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
@@ -69,21 +69,30 @@ public class ProductController {
     {
         productService.deleteProductVariant(productId, variantId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
-                        .statusCode(HttpStatus.OK.value())
-                        .message("Xóa mẫu sản phẩm thành công")
+//                .statusCode(HttpStatus.OK.value())
+//                .message("Xóa mẫu sản phẩm thành công")
                 .build());
     }
 
-    @GetMapping("/{productId}")
+    @GetMapping("/{productId}/variant")
     public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getProductVariants(
             @PathVariable Long productId)
     {
         List<ProductVariantResponse> responses = productService.getAllProductVariants(productId);
         return ResponseEntity.ok(ApiResponse.<List<ProductVariantResponse>>builder()
-                        .message("Lay thành công danh sách mẫu sản phẩm!!")
-                        .statusCode(HttpStatus.OK.value())
-                        .data(responses)
-                        .build());
+                .message("Lay thành công danh sách mẫu sản phẩm!!")
+                .statusCode(HttpStatus.OK.value())
+                .data(responses)
+                .build());
+    }
+
+    @GetMapping("/{productId")
+    public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long productId){
+        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Get product successfully")
+                .data(productService.getProductByProductId(productId))
+                .build());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")

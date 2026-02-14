@@ -31,7 +31,7 @@ export default function ProductListPage() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        console.log("Sort: ",sortBy);
+        // console.log("Sort: ",sortBy);
         // api
         const res = await productService.getProducts({
           page: currentPage - 1,
@@ -44,7 +44,7 @@ export default function ProductListPage() {
           sortBy: sortBy
         });
 
-        console.log("Products Response: ", res.data);
+        // console.log("Products Response: ", res.data);
         // map data
         const mappedProducts = res.data.content.map(p => transformProduct(p));
         setProducts(mappedProducts);
@@ -80,7 +80,7 @@ export default function ProductListPage() {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getRootCategories();
-        console.log("Response:", response);
+        // console.log("Response:", response);
         setCategories(response.data);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -89,8 +89,6 @@ export default function ProductListPage() {
 
     fetchCategories();
   }, []);
-
-  
 
   const STAR_OPTIONS = [
     { value: 4.5, label: '4.5 ⭐ trở lên' },
@@ -375,7 +373,6 @@ export default function ProductListPage() {
           ) : (
             <>
               <div className={`products-container ${viewMode}`}>
-                {console.log(sortedProducts)}
                 {sortedProducts.map((product, index) => (
                   <ProductCard 
                     key={product.id} 

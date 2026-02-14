@@ -14,6 +14,9 @@ import java.math.BigDecimal;
 @Builder
 @Data @AllArgsConstructor @NoArgsConstructor
 public class ProductVariantResponse {
+    @JsonProperty("id")
+    private Long variantId;
+    private Long inStock;
     private Long productId;
     private BigDecimal height;
     private BigDecimal length;
@@ -26,6 +29,8 @@ public class ProductVariantResponse {
 
     public static  ProductVariantResponse fromEntity(ProductVariant product){
         return ProductVariantResponse.builder()
+                .variantId(product.getId())
+                .inStock(product.getInStock())
                 .productId(product.getProduct().getId())
                 .height(product.getHeight())
                 .length(product.getLength())

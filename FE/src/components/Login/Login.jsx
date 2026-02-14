@@ -27,6 +27,7 @@ export default function Login() {
         });
 
         console.log("Login success:", response);
+        localStorage.setItem('accessToken', response.data.token);
       }
       else{
         const response = await authService.register({

@@ -64,7 +64,16 @@ const productService = {
 
     getProductVariants: async (productId) => {
         try {
-            const response = await apiClient.get(`/api/v1/product/${productId}`);
+            const response = await apiClient.get(`/api/v1/product/${productId}/variant`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
+    },
+
+    getProductByProductId: async (productId) => {
+        try {
+            const response = await apiClient.get(`api/v1/products/${productId}`);
             return response.data;
         } catch (error) {
             throw error.response?.data || error.message;

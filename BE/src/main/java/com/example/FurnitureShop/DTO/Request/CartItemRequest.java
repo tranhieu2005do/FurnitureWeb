@@ -1,7 +1,8 @@
 package com.example.FurnitureShop.DTO.Request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,14 +14,14 @@ import lombok.NoArgsConstructor;
 public class CartItemRequest {
 
     @JsonProperty("cart_id")
-    @NotBlank(message = "Cần biết mã giỏ hàng.")
+    @NotNull(message = "Cần biết mã giỏ hàng.")
     private Long cartId;
 
     @JsonProperty("variant_id")
-    @NotBlank(message = "Cần biết mã sản phẩm")
+    @NotNull(message = "Cần biết mã sản phẩm")
     private Long variantId;
 
-    @NotBlank(message = "Số lượng sản phẩm mong muốn là bao nhiêu.")
     @JsonProperty("quantity")
+    @Min(value = 1, message = "Số lượng phải >= 1")
     private int quantity;
 }

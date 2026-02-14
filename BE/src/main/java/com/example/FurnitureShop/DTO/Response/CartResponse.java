@@ -15,15 +15,16 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class CartResponse {
-    @JsonProperty("user_id")
-    private Long userId;
+
+    @JsonProperty("cart_id")
+    private Long cartId;
 
     @JsonProperty("cart_items")
     private List<CartItemResponse> cartItems = new ArrayList<>();
 
     public static CartResponse fromEntity(Cart cart) {
         return CartResponse.builder()
-                .userId(cart.getUser().getId())
+                .cartId(cart.getId())
                 .cartItems(cart.getCartItems()
                         .stream()
                         .map(CartItemResponse::fromEntity)

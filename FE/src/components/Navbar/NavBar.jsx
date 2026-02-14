@@ -1,9 +1,25 @@
 import "./NavBar.css";
 import { useState, useEffect } from "react";
+import cartService from "../../api/CartService";
 
 export default function NavBar(){
 
+    const [cartItems, setCartItems] = useState([]);
     const [scrollY, setScrollY] = useState(0);
+
+    useEffect(() => {
+      const fetchCart = async () => {
+        try {
+          const response = await cartService.getUserCart();
+          console.log("Cart response:", response.data);
+          localStorage.setItem('cart_id', response.data.cart_id);
+          setCartItems(response.data.cart_items);
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      fetchCart();
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => setScrollY(window.scrollY);
@@ -53,7 +69,7 @@ export default function NavBar(){
                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                 </svg>
 
-                <span className="cart-badge">3</span>
+                <span className="cart-badge">{cartItems.length}</span>
             </button>
 
           </div>
