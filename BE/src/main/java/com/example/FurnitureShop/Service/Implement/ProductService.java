@@ -12,10 +12,7 @@ import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.NotFoundException;
 import com.example.FurnitureShop.Model.*;
 import com.example.FurnitureShop.Model.ProductVariant.Material;
-import com.example.FurnitureShop.Repository.CategoryRepository;
-import com.example.FurnitureShop.Repository.ProductRepository;
-import com.example.FurnitureShop.Repository.ProductVariantRepository;
-import com.example.FurnitureShop.Repository.PromotionProductRepository;
+import com.example.FurnitureShop.Repository.*;
 import com.example.FurnitureShop.Service.Interface.IProductService;
 import jakarta.persistence.Column;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +48,7 @@ public class ProductService implements IProductService {
     private final CategoryRepository categoryRepository;
     private final ProductVariantRepository productVariantRepository;
     private final ProductVariantService productVariantService;
+    private final ProductImageRepository  productImageRepository;
     private final CloudinaryService cloudinaryService;
     private final PromotionProductRepository promotionProductRepository;
 
@@ -217,11 +215,15 @@ public class ProductService implements IProductService {
     @Transactional(readOnly = true)
     @Cacheable(key = "'variant_' + #productId")
     public List<ProductVariantResponse> getAllProductVariants(Long productId) {
-        Product existingProduct = productRepository.findById(productId).get();
-        return existingProduct.getProductVariants()
-                .stream()
-                .map(ProductVariantResponse::fromEntity)
-                .toList();
+        Product existingProduct = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product not found"));
+        List<ProductVariantResponse> response = new ArrayList<>();
+        for(ProductVariant variant: existingProduct.getProductVariants()){
+            ProductVariantResponse variantResponse = ProductVariantResponse.fromEntity(variant);
+            variantResponse.setImages(this.getVariantImages(variant.getId()));
+            response.add(variantResponse);
+        }
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -321,20 +323,29 @@ public class ProductService implements IProductService {
     }
 
     @CacheEvict(allEntries = true)
-    public ProductImageResponse uploadVariantImage(ProductImageRequest request) throws IOException {
-        ProductVariant variant = productVariantRepository.findById(request.getVariantId())
+    public ProductImageResponse uploadVariantImage(Long variantId, MultipartFile file) throws IOException {
+        ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException("Product variant not found"));
         String folder = "furniture-web/products";
-        String url = cloudinaryService.upload(request.getImageFile(),  folder).getUrl();
+        String url = cloudinaryService.upload(file,  folder).getUrl();
         ProductImage newProductImage = ProductImage.builder()
                 .url(url)
                 .productVariant(variant)
                 .build();
-        productVariantRepository.save(variant);
+        productImageRepository.save(newProductImage);
         return ProductImageResponse.builder()
-                .variantId(request.getVariantId())
+                .variantId(variantId)
                 .url(url)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(key = "'image_' + #variantId")
+    private List<ProductImageResponse> getVariantImages(Long variantId){
+        return productImageRepository.findByVariantId(variantId)
+                .stream()
+                .map(ProductImageResponse::of)
+                .toList();
     }
 
 }

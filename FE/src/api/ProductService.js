@@ -73,7 +73,16 @@ const productService = {
 
     getProductByProductId: async (productId) => {
         try {
-            const response = await apiClient.get(`api/v1/products/${productId}`);
+            const response = await apiClient.get(`/api/v1/product/${productId}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
+    },
+
+    getVariantImages: async (variantId) => {
+        try {
+            const response = await apiClient.get(`/api/v1/product/variant/${variantId}`);
             return response.data;
         } catch (error) {
             throw error.response?.data || error.message;

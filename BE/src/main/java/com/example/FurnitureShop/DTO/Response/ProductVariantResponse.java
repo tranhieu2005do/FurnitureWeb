@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Builder
 @Data @AllArgsConstructor @NoArgsConstructor
@@ -26,6 +27,7 @@ public class ProductVariantResponse {
     private Material material;
     @JsonProperty("is_active")
     private boolean isActive;
+    private List<ProductImageResponse> images;
 
     public static  ProductVariantResponse fromEntity(ProductVariant product){
         return ProductVariantResponse.builder()

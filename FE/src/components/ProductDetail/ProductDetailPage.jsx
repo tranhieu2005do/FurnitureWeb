@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
 import productService from '../../api/ProductService';
+import commentService from '../../api/CommentService';
+import cartService from '../../api/CartService';
+import WriteReview from './WriteReview/WriteReview';
 import './ProductDetailPage.css';
-
-// ── Enums mapping ──────────────────────────────────────────────────────────────
+import NavBar from '../Navbar/NavBar';
+/* ── Enums ───────────────────────────────────────────────────────── */
 const MATERIAL_LABEL = {
   GO_SOI:'Gỗ Sồi', GO_TAN_BI:'Gỗ Tần Bì', GO_OC_CHO:'Gỗ Óc Chó',
   INOX:'Inox', NHOM:'Nhôm', MARBLE:'Đá Marble',
@@ -23,7 +26,7 @@ function fmtPrice(p) {
   return p ? Number(p).toLocaleString('vi-VN') + 'đ' : '—';
 }
 
-// ── StarRating display ─────────────────────────────────────────────────────────
+/* ── StarDisplay ─────────────────────────────────────────────────── */
 function StarDisplay({ value = 0, size = 18 }) {
   return (
     <span className="star-display">
@@ -50,77 +53,61 @@ function StarDisplay({ value = 0, size = 18 }) {
   );
 }
 
-// ── Interactive star picker ────────────────────────────────────────────────────
-function StarPicker({ value, onChange }) {
-  const [hovered, setHovered] = useState(0);
-  return (
-    <span className="star-picker">
-      {[1,2,3,4,5].map(i => (
-        <button key={i} type="button"
-          className={`star-pick-btn ${i <= (hovered || value) ? 'lit' : ''}`}
-          onMouseEnter={() => setHovered(i)}
-          onMouseLeave={() => setHovered(0)}
-          onClick={() => onChange(i)}
-        >★</button>
-      ))}
-    </span>
-  );
-}
-
-// ── Main component ─────────────────────────────────────────────────────────────
+/* ── Main ────────────────────────────────────────────────────────── */
 export default function ProductDetailPage({ productId = 1 }) {
   const [product,  setProduct]  = useState(null);
   const [variants, setVariants] = useState([]);
   const [reviews,  setReviews]  = useState([]);
   const [loading,  setLoading]  = useState(true);
 
-  // Selection state
   const [selectedColor,    setColor]    = useState(null);
   const [selectedMaterial, setMaterial] = useState(null);
   const [selectedVariant,  setVariant]  = useState(null);
-  const [quantity, setQty]              = useState(1);
+  const [quantity,         setQty]      = useState(1);
 
-  // Gallery state
-  const [activeImg,  setActiveImg]  = useState(0);
-  const [zoomStyle,  setZoomStyle]  = useState({});
-  const [zoomed,     setZoomed]     = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+  const [zoomStyle, setZoomStyle] = useState({});
+  const [zoomed,    setZoomed]    = useState(false);
   const imgRef = useRef(null);
 
-  // Cart feedback
-  const [cartStatus, setCartStatus] = useState('idle'); // idle | adding | added | error
+  const [cartStatus, setCartStatus] = useState('idle');
 
-  // Review form
-  const [reviewForm,    setReviewForm]    = useState({ star: 0, comment: '' });
-  const [submitStatus,  setSubmitStatus]  = useState('idle');
-  const [reviewPage,    setReviewPage]    = useState(0);
-  const [reviewTotal,   setReviewTotal]   = useState(0);
+  const [previewImage, setPreviewImage] = useState(null);
 
-  // ── Fetch product + variants + reviews ──────────────────────────────────────
+  const [reviewPage,  setReviewPage]  = useState(0);
+  const [reviewTotal, setReviewTotal] = useState(0);
+
+  /* ── Fetch ─────────────────────────────────────────────────────── */
+  const reloadReviews = async (page = 0, append = false) => {
+    const res  = await commentService.getCommentOfProduct(productId, { page, size: 5 });
+    const data = res.data;
+    setReviews(prev => append ? [...prev, ...(data.content ?? [])] : (data.content ?? []));
+    setReviewTotal(data.total_elements ?? 0);
+    setReviewPage(page);
+  };
+
   useEffect(() => {
-    const id = productId || window.location.pathname.split('/').pop();
     Promise.all([
-      productService.getProductByProductId(id),
-      productService.getProductVariants(id),
-      apiClient.get(`/products/${id}/ratings`, { params: { page: 0, size: 5 } }),
+      productService.getProductByProductId(productId),
+      productService.getProductVariants(productId),
+      commentService.getCommentOfProduct(productId),
     ]).then(([pRes, vRes, rRes]) => {
-      setProduct(pRes.data.data);
-      const vList = vRes.data.data?.content ?? [];
-      setVariants(vList.filter(v => v.isActive));
-      const rData = rRes.data.data;
+      setProduct(pRes.data);
+      setVariants((vRes.data ?? []).filter(v => v.is_active));
+      const rData = rRes.data;
       setReviews(rData.content ?? []);
-      setReviewTotal(rData.totalElements ?? 0);
+      setReviewTotal(rData.total_elements ?? 0);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [productId]);
 
-  // ── Derived: available colors / materials based on current filter ────────────
+  /* ── Derived ───────────────────────────────────────────────────── */
   const availColors    = [...new Set(variants.map(v => v.color).filter(Boolean))];
   const availMaterials = [...new Set(
     variants.filter(v => !selectedColor || v.color === selectedColor)
             .map(v => v.material).filter(Boolean)
   )];
 
-  // ── Auto-select variant when color+material are set ──────────────────────────
   useEffect(() => {
     if (!selectedColor && !selectedMaterial) { setVariant(null); return; }
     const match = variants.find(v =>
@@ -131,31 +118,37 @@ export default function ProductDetailPage({ productId = 1 }) {
     if (match) setQty(1);
   }, [selectedColor, selectedMaterial, variants]);
 
-  // ── All images from all variants ─────────────────────────────────────────────
+  /* ── Images ────────────────────────────────────────────────────── */
   const allImages = variants.flatMap(v =>
-    (v.images ?? []).map(img => ({ url: img.url, variantId: v.id }))
+    ( v.images).map(img => ({ url: img.url }))
   );
-  // fallback nếu không có ảnh
-  if (allImages.length === 0 && product?.thumbnail) {
-    allImages.push({ url: product.thumbnail, variantId: null });
-  }
+  if (allImages.length === 0 && product?.thumbnail)
+    allImages.push({ url: product.thumbnail });
 
-  // ── Image zoom on hover ───────────────────────────────────────────────────────
+  const displayImages = (selectedVariant
+    ? (selectedVariant.images ?? []).map(i => i.url)
+    : allImages.map(i => i.url)
+  );
+  const imgs       = displayImages.length ? displayImages : ['/placeholder.jpg'];
+  const safeActive = Math.min(activeImg, imgs.length - 1);
+
+  /* ── Zoom ──────────────────────────────────────────────────────── */
   const handleMouseMove = (e) => {
     const rect = imgRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const x = ((e.clientX - rect.left) / rect.width)  * 100;
     const y = ((e.clientY - rect.top)  / rect.height) * 100;
     setZoomStyle({ transformOrigin: `${x}% ${y}%`, transform: 'scale(2)' });
   };
 
-  // ── Add to cart ───────────────────────────────────────────────────────────────
+  /* ── Cart ──────────────────────────────────────────────────────── */
   const handleAddToCart = async () => {
     if (!selectedVariant || cartStatus === 'adding') return;
     try {
       setCartStatus('adding');
-      await apiClient.post('/cart/items', {
-        productVariantId: selectedVariant.id,
+      await cartService.addItemToCart({
+        cart_id:    localStorage.getItem('cart_id'),
+        variant_id: selectedVariant.id,
         quantity,
       });
       setCartStatus('added');
@@ -166,47 +159,22 @@ export default function ProductDetailPage({ productId = 1 }) {
     }
   };
 
-  // ── Buy now ───────────────────────────────────────────────────────────────────
   const handleBuyNow = async () => {
     await handleAddToCart();
     window.location.href = '/cart';
   };
 
-  // ── Submit review ─────────────────────────────────────────────────────────────
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    if (!reviewForm.star || !reviewForm.comment.trim()) return;
-    try {
-      setSubmitStatus('loading');
-      const id = productId || window.location.pathname.split('/').pop();
-      await apiClient.post(`/products/${id}/ratings`, reviewForm);
-      setSubmitStatus('success');
-      setReviewForm({ star: 0, comment: '' });
-      // reload reviews
-      const rRes = await apiClient.get(`/products/${id}/ratings`, { params: { page: 0, size: 5 } });
-      const rData = rRes.data.data;
-      setReviews(rData.content ?? []);
-      setReviewTotal(rData.totalElements ?? 0);
-      setReviewPage(0);
-    } catch {
-      setSubmitStatus('error');
-    } finally {
-      setTimeout(() => setSubmitStatus('idle'), 3000);
-    }
-  };
-
-  // ── Load more reviews ──────────────────────────────────────────────────────────
+  /* ── Load more ─────────────────────────────────────────────────── */
   const loadMoreReviews = async () => {
-    const id = productId || window.location.pathname.split('/').pop();
     const nextPage = reviewPage + 1;
-    const rRes = await apiClient.get(`/products/${id}/ratings`, {
+    const res  = await apiClient.get(`/products/${productId}/ratings`, {
       params: { page: nextPage, size: 5 }
     });
-    setReviews(prev => [...prev, ...(rRes.data.data.content ?? [])]);
+    setReviews(prev => [...prev, ...(res.data.data.content ?? [])]);
     setReviewPage(nextPage);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  /* ── Guards ────────────────────────────────────────────────────── */
   if (loading) return (
     <div className="pdp-loading">
       <div className="pdp-spinner"/>
@@ -214,20 +182,13 @@ export default function ProductDetailPage({ productId = 1 }) {
     </div>
   );
   if (!product) return (
-    <div className="pdp-loading">
-      <span>Không tìm thấy sản phẩm</span>
-    </div>
+    <div className="pdp-loading"><span>Không tìm thấy sản phẩm</span></div>
   );
-
-  const activeVariantImages = selectedVariant
-    ? (selectedVariant.images ?? []).map(i => i.url)
-    : allImages.map(i => i.url);
-
-  const displayImages = activeVariantImages.length ? activeVariantImages : ['/placeholder.jpg'];
-  const safeActive    = Math.min(activeImg, displayImages.length - 1);
 
   return (
     <div className="pdp-page">
+      <NavBar />
+
       {/* Breadcrumb */}
       <nav className="pdp-breadcrumb">
         <a href="/">Trang chủ</a><span>/</span>
@@ -235,90 +196,72 @@ export default function ProductDetailPage({ productId = 1 }) {
         <span>{product.name}</span>
       </nav>
 
-      {/* ── MAIN SECTION ──────────────────────────────────────────── */}
+      {/* ════ MAIN ════════════════════════════════════════════════ */}
       <section className="pdp-main">
 
         {/* Gallery */}
         <div className="pdp-gallery">
-          {/* Thumbnails */}
           <div className="pdp-thumbs">
-            {displayImages.map((url, i) => (
+            {imgs.map((url, i) => (
               <button key={i}
                 className={`pdp-thumb ${safeActive === i ? 'active' : ''}`}
-                onClick={() => setActiveImg(i)}
-              >
+                onClick={() => setActiveImg(i)}>
                 <img src={url} alt={`${product.name} ${i+1}`}/>
               </button>
             ))}
           </div>
 
-          {/* Main image */}
           <div className="pdp-main-img-wrap"
             onMouseMove={handleMouseMove}
             onMouseEnter={() => setZoomed(true)}
-            onMouseLeave={() => { setZoomed(false); setZoomStyle({}); }}
-          >
-            <img
-              ref={imgRef}
-              src={displayImages[safeActive]}
-              alt={product.name}
-              className="pdp-main-img"
-              style={zoomed ? zoomStyle : {}}
-            />
+            onMouseLeave={() => { setZoomed(false); setZoomStyle({}); }}>
+            <img ref={imgRef} src={imgs[safeActive]} alt={product.name}
+              className="pdp-main-img" style={zoomed ? zoomStyle : {}}/>
             <span className="pdp-zoom-hint">🔍 Di chuột để phóng to</span>
 
-            {/* Nav arrows */}
-            {displayImages.length > 1 && (
+            {imgs.length > 1 && (
               <>
                 <button className="pdp-img-arrow left"
                   onClick={() => setActiveImg(i => Math.max(0, i - 1))}
-                  disabled={safeActive === 0}
-                >‹</button>
+                  disabled={safeActive === 0}>‹</button>
                 <button className="pdp-img-arrow right"
-                  onClick={() => setActiveImg(i => Math.min(displayImages.length - 1, i + 1))}
-                  disabled={safeActive === displayImages.length - 1}
-                >›</button>
+                  onClick={() => setActiveImg(i => Math.min(imgs.length - 1, i + 1))}
+                  disabled={safeActive === imgs.length - 1}>›</button>
               </>
             )}
-
-            {/* Dot indicators */}
             <div className="pdp-img-dots">
-              {displayImages.map((_, i) => (
+              {imgs.map((_, i) => (
                 <button key={i}
                   className={`pdp-dot ${safeActive === i ? 'active' : ''}`}
-                  onClick={() => setActiveImg(i)}
-                />
+                  onClick={() => setActiveImg(i)}/>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Info panel */}
+        {/* Info */}
         <div className="pdp-info">
-          {/* Category + badges */}
           <div className="pdp-top-meta">
             <span className="pdp-category">{product.category?.name}</span>
-            {product.purchaseCount > 0 && (
-              <span className="pdp-badge-sold">🛒 {product.purchaseCount.toLocaleString()} lượt mua</span>
+            {product.purchase_count > 0 && (
+              <span className="pdp-badge-sold">🛒 {product.purchase_count.toLocaleString()} lượt mua</span>
             )}
           </div>
 
           <h1 className="pdp-product-name">{product.name}</h1>
 
-          {/* Rating row */}
           <div className="pdp-rating-row">
-            <StarDisplay value={product.regardStar ?? 0}/>
-            <span className="pdp-rating-value">{(product.regardStar ?? 0).toFixed(1)}</span>
+            <StarDisplay value={product.rated_star ?? 0}/>
+            <span className="pdp-rating-value">{(product.rated_star ?? 0).toFixed(1)}</span>
             <span className="pdp-rating-count">({reviewTotal} đánh giá)</span>
             <span className="pdp-divider">|</span>
             <span className="pdp-instock-label">
-              {product.inStockCount > 0
-                ? <span className="instock">✓ Còn {product.inStockCount} sản phẩm</span>
+              {product.stock > 0
+                ? <span className="instock">✓ Còn {product.stock} sản phẩm</span>
                 : <span className="outstock">✗ Hết hàng</span>}
             </span>
           </div>
 
-          {/* Price */}
           <div className="pdp-price-block">
             {selectedVariant ? (
               <span className="pdp-price-main">{fmtPrice(selectedVariant.price)}</span>
@@ -334,32 +277,23 @@ export default function ProductDetailPage({ productId = 1 }) {
 
           <div className="pdp-divider-line"/>
 
-          {/* ── Color selector ── */}
+          {/* Color */}
           {availColors.length > 0 && (
             <div className="pdp-option-group">
               <div className="pdp-option-label">
                 <span>Màu sắc</span>
                 {selectedColor && (
-                  <span className="pdp-selected-val">
-                    {COLOR_META[selectedColor]?.label}
-                  </span>
+                  <span className="pdp-selected-val">{COLOR_META[selectedColor]?.label}</span>
                 )}
               </div>
               <div className="pdp-color-row">
                 {availColors.map(c => {
                   const meta = COLOR_META[c] ?? { label: c, hex: '#ccc' };
-                  const isActive = selectedColor === c;
                   return (
-                    <button key={c}
-                      title={meta.label}
-                      className={`pdp-color-btn ${isActive ? 'active' : ''}`}
-                      onClick={() => {
-                        setColor(prev => prev === c ? null : c);
-                        setMaterial(null);
-                      }}
-                    >
-                      <span className="pdp-color-swatch"
-                        style={{ background: meta.hex }}/>
+                    <button key={c} title={meta.label}
+                      className={`pdp-color-btn ${selectedColor === c ? 'active' : ''}`}
+                      onClick={() => { setColor(p => p === c ? null : c); setMaterial(null); }}>
+                      <span className="pdp-color-swatch" style={{ background: meta.hex }}/>
                       <span className="pdp-color-name">{meta.label}</span>
                     </button>
                   );
@@ -368,23 +302,20 @@ export default function ProductDetailPage({ productId = 1 }) {
             </div>
           )}
 
-          {/* ── Material selector ── */}
+          {/* Material */}
           {availMaterials.length > 0 && (
             <div className="pdp-option-group">
               <div className="pdp-option-label">
                 <span>Chất liệu</span>
                 {selectedMaterial && (
-                  <span className="pdp-selected-val">
-                    {MATERIAL_LABEL[selectedMaterial]}
-                  </span>
+                  <span className="pdp-selected-val">{MATERIAL_LABEL[selectedMaterial]}</span>
                 )}
               </div>
               <div className="pdp-material-row">
                 {availMaterials.map(m => (
                   <button key={m}
                     className={`pdp-material-chip ${selectedMaterial === m ? 'active' : ''}`}
-                    onClick={() => setMaterial(prev => prev === m ? null : m)}
-                  >
+                    onClick={() => setMaterial(p => p === m ? null : m)}>
                     {MATERIAL_LABEL[m] ?? m}
                   </button>
                 ))}
@@ -392,7 +323,7 @@ export default function ProductDetailPage({ productId = 1 }) {
             </div>
           )}
 
-          {/* ── Variant detail box ── */}
+          {/* Variant box */}
           {selectedVariant && (
             <div className="pdp-variant-box">
               <div className="pdp-variant-box-title">📦 Phiên bản đã chọn</div>
@@ -419,11 +350,10 @@ export default function ProductDetailPage({ productId = 1 }) {
             </div>
           )}
 
-          {/* ── Quantity + CTA ── */}
+          {/* Quantity + CTA */}
           <div className="pdp-action-row">
             <div className="pdp-qty-control">
-              <button className="pdp-qty-btn"
-                disabled={quantity <= 1}
+              <button className="pdp-qty-btn" disabled={quantity <= 1}
                 onClick={() => setQty(q => q - 1)}>−</button>
               <span className="pdp-qty-val">{quantity}</span>
               <button className="pdp-qty-btn"
@@ -432,19 +362,14 @@ export default function ProductDetailPage({ productId = 1 }) {
             </div>
 
             <div className="pdp-cta-btns">
-              <button
-                className={`pdp-btn-cart ${cartStatus}`}
+              <button className={`pdp-btn-cart ${cartStatus}`}
                 onClick={handleAddToCart}
-                disabled={!selectedVariant || !selectedVariant.inStock || cartStatus === 'adding'}
-              >
+                disabled={!selectedVariant || !selectedVariant.inStock || cartStatus === 'adding'}>
                 {cartStatus === 'adding' && <span className="btn-spinner"/>}
-                {cartStatus === 'added'  && '✓ '}
-                {cartStatus === 'error'  && '✗ '}
                 {cartStatus === 'adding' ? 'Đang thêm...'
-                  : cartStatus === 'added' ? 'Đã thêm vào giỏ!'
-                  : cartStatus === 'error' ? 'Lỗi, thử lại'
-                  : (
-                    <>
+                  : cartStatus === 'added' ? '✓ Đã thêm vào giỏ!'
+                  : cartStatus === 'error' ? '✗ Lỗi, thử lại'
+                  : <>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                            stroke="currentColor" strokeWidth="2">
                         <circle cx="9" cy="21" r="1"/>
@@ -453,14 +378,11 @@ export default function ProductDetailPage({ productId = 1 }) {
                       </svg>
                       Thêm vào giỏ
                     </>
-                  )}
+                }
               </button>
 
-              <button
-                className="pdp-btn-buy"
-                onClick={handleBuyNow}
-                disabled={!selectedVariant || !selectedVariant.inStock}
-              >
+              <button className="pdp-btn-buy" onClick={handleBuyNow}
+                disabled={!selectedVariant || !selectedVariant.inStock}>
                 Mua ngay
               </button>
             </div>
@@ -468,26 +390,24 @@ export default function ProductDetailPage({ productId = 1 }) {
 
           {!selectedVariant && (
             <p className="pdp-select-hint">
-              ← Vui lòng chọn màu sắc {availMaterials.length > 1 && 'và chất liệu'} để xem giá & thêm vào giỏ
+              ← Vui lòng chọn màu sắc{availMaterials.length > 1 ? ' và chất liệu' : ''} để xem giá & thêm vào giỏ
             </p>
           )}
 
           <div className="pdp-divider-line"/>
 
-          {/* Description */}
           <div className="pdp-description">
             <h3>Mô tả sản phẩm</h3>
             <p>{product.description}</p>
           </div>
 
-          {/* Perks */}
           <div className="pdp-perks">
             {[
               { icon:'🚚', text:'Miễn phí vận chuyển đơn trên 10 triệu' },
               { icon:'💯', text:'Bảo hành chính hãng đến 5 năm'         },
               { icon:'🔄', text:'Đổi trả trong 30 ngày'                  },
               { icon:'🔒', text:'Thanh toán bảo mật 100%'                },
-            ].map((p,i) => (
+            ].map((p, i) => (
               <div key={i} className="pdp-perk">
                 <span>{p.icon}</span><span>{p.text}</span>
               </div>
@@ -496,28 +416,25 @@ export default function ProductDetailPage({ productId = 1 }) {
         </div>
       </section>
 
-      {/* ── REVIEWS SECTION ───────────────────────────────────────── */}
+      {/* ════ REVIEWS ═════════════════════════════════════════════ */}
       <section className="pdp-reviews">
         <div className="pdp-reviews-inner">
 
-          {/* Summary */}
+          {/* Summary sidebar */}
           <div className="pdp-review-summary">
             <div className="pdp-review-big-score">
-              <span className="big-number">{(product.regardStar ?? 0).toFixed(1)}</span>
+              <span className="big-number">{(product.rated_star).toFixed(1)}</span>
               <StarDisplay value={product.regardStar ?? 0} size={28}/>
               <span className="review-count-label">{reviewTotal} đánh giá</span>
               <span className="purchase-count-label">
-                🛒 {product.purchaseCount?.toLocaleString() ?? 0} lượt mua
+                🛒 {product.purchase_count} lượt mua
               </span>
             </div>
 
-            {/* Rating bars */}
             <div className="pdp-rating-bars">
               {[5,4,3,2,1].map(star => {
                 const count = reviews.filter(r => Math.round(r.star) === star).length;
-                const pct = reviewTotal > 0
-                  ? Math.round((count / reviewTotal) * 100)
-                  : 0;
+                const pct   = reviewTotal > 0 ? Math.round((count / reviewTotal) * 100) : 0;
                 return (
                   <div key={star} className="rating-bar-row">
                     <span className="bar-star">{star} ★</span>
@@ -531,38 +448,12 @@ export default function ProductDetailPage({ productId = 1 }) {
             </div>
           </div>
 
-          {/* Write a review */}
+          {/* ── WriteReview component ── */}
           <div className="pdp-write-review">
-            <h3>Viết đánh giá của bạn</h3>
-            <form onSubmit={handleSubmitReview} className="pdp-review-form">
-              <div className="pdp-form-row">
-                <label>Đánh giá</label>
-                <StarPicker
-                  value={reviewForm.star}
-                  onChange={v => setReviewForm(f => ({ ...f, star: v }))}
-                />
-              </div>
-              <div className="pdp-form-row">
-                <label>Nhận xét</label>
-                <textarea
-                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
-                  value={reviewForm.comment}
-                  onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
-                  rows={4}
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className={`pdp-submit-review ${submitStatus}`}
-                disabled={!reviewForm.star || submitStatus === 'loading'}
-              >
-                {submitStatus === 'loading' ? 'Đang gửi...'
-                  : submitStatus === 'success' ? '✓ Đã gửi đánh giá!'
-                  : submitStatus === 'error'   ? '✗ Lỗi, thử lại'
-                  : 'Gửi đánh giá'}
-              </button>
-            </form>
+            <WriteReview
+              productId={productId}
+              onSubmitSuccess={() => reloadReviews(0, false)}
+            />
           </div>
 
           {/* Review list */}
@@ -576,24 +467,42 @@ export default function ProductDetailPage({ productId = 1 }) {
               </div>
             ) : (
               <>
-                {reviews.map((r, i) => (
-                  <div key={r.id ?? i} className="pdp-review-item">
+                {reviews.map(r => (
+                  <div key={r.id} className="pdp-review-item">
                     <div className="review-avatar">
-                      {(r.user?.name ?? r.userName ?? 'K')[0].toUpperCase()}
+                      {(r.user_name ?? 'K')[0].toUpperCase()}
                     </div>
                     <div className="review-content">
                       <div className="review-header">
-                        <span className="review-author">
-                          {r.user?.name ?? r.userName ?? 'Khách hàng'}
-                        </span>
+                        <span className="review-author">{r.user_name ?? 'Khách hàng'}</span>
                         <StarDisplay value={r.star} size={15}/>
                         <span className="review-date">
-                          {r.createdAt
-                            ? new Date(r.createdAt).toLocaleDateString('vi-VN')
-                            : ''}
+                          {formatTimeAgo(r.created_at)}
                         </span>
                       </div>
                       <p className="review-text">{r.comment}</p>
+                      {r.media_response && r.media_response.length > 0 && (
+                        <div className="review-media">
+                            {r.media_response.map((m, index) => (
+                            <div key={index} className="review-media-item">
+                                {m.type === 'video' ? (
+                                <video
+                                    src={m.url}
+                                    controls
+                                    className="review-video"
+                                />
+                                ) : (
+                                <img
+                                    src={m.url}
+                                    alt="review media"
+                                    className="review-image"
+                                    onClick={() => setPreviewImage(m.url)}
+                                />
+                                )}
+                            </div>
+                            ))}
+                        </div>
+                        )}
                     </div>
                   </div>
                 ))}
@@ -608,6 +517,37 @@ export default function ProductDetailPage({ productId = 1 }) {
           </div>
         </div>
       </section>
+      {previewImage && (
+        <div className="image-preview-overlay" onClick={() => setPreviewImage(null)}>
+            <div className="image-preview-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+                className="image-preview-close"
+                onClick={() => setPreviewImage(null)}
+            >
+                ×
+            </button>
+            <img src={previewImage} alt="preview" />
+            </div>
+        </div>
+        )}
+
     </div>
   );
 }
+
+const formatTimeAgo = (dateString) => {
+  const now = new Date();
+  const created = new Date(dateString);
+
+  const diffMs = now - created;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays <= 7) return `${diffDays} ngày trước`;
+
+  return created.toLocaleDateString("vi-VN");
+};

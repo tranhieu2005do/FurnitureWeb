@@ -9,6 +9,7 @@ import com.example.FurnitureShop.Service.Implement.ProductService;
 import com.example.FurnitureShop.Service.Implement.ProductVariantService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/product")
 @AllArgsConstructor
@@ -130,10 +132,12 @@ public class ProductController {
     }
 
     @PostMapping("/variant/image")
-    public ResponseEntity<ApiResponse<ProductImageResponse>> uploadVariantImage(@RequestBody ProductImageRequest request) throws IOException {
-        String folder = "furniture-web/products";
+    public ResponseEntity<ApiResponse<ProductImageResponse>> uploadVariantImage(
+            @RequestParam Long variantId,
+            @RequestParam MultipartFile image
+            ) throws IOException {
         return ResponseEntity.ok(ApiResponse.<ProductImageResponse>builder()
-                .data(productService.uploadVariantImage(request))
+                .data(productService.uploadVariantImage(variantId, image))
                 .message("Upload variant image successfully")
                 .statusCode(HttpStatus.OK.value())
                 .build());
