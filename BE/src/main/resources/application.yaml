@@ -53,4 +53,7 @@ mailServer:
   email: ${EMAIL}
   password: ${MAIL_PASSWORD}
   isSSL: false
-
+cloudinary:
+  cloud-name: daxckplhy
+  api-key: 376791883334542
+  api-secret: nIcdtvQlL_0lNpnZT0IKFy_U-dI

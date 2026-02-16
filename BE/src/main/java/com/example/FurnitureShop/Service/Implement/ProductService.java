@@ -1,18 +1,17 @@
 package com.example.FurnitureShop.Service.Implement;
 
+import com.example.FurnitureShop.DTO.Request.ProductImageRequest;
 import com.example.FurnitureShop.DTO.Request.ProductRequest;
 import com.example.FurnitureShop.DTO.Request.ProductVariantRequest;
 import com.example.FurnitureShop.DTO.Request.UpdateVariantRequest;
 import com.example.FurnitureShop.DTO.Response.PageResponse;
+import com.example.FurnitureShop.DTO.Response.ProductImageResponse;
 import com.example.FurnitureShop.DTO.Response.ProductResponse;
 import com.example.FurnitureShop.DTO.Response.ProductVariantResponse;
 import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.NotFoundException;
-import com.example.FurnitureShop.Model.Category;
-import com.example.FurnitureShop.Model.Product;
-import com.example.FurnitureShop.Model.ProductVariant;
+import com.example.FurnitureShop.Model.*;
 import com.example.FurnitureShop.Model.ProductVariant.Material;
-import com.example.FurnitureShop.Model.PromotionProducts;
 import com.example.FurnitureShop.Repository.CategoryRepository;
 import com.example.FurnitureShop.Repository.ProductRepository;
 import com.example.FurnitureShop.Repository.ProductVariantRepository;
@@ -52,7 +51,7 @@ public class ProductService implements IProductService {
     private final CategoryRepository categoryRepository;
     private final ProductVariantRepository productVariantRepository;
     private final ProductVariantService productVariantService;
-
+    private final CloudinaryService cloudinaryService;
     private final PromotionProductRepository promotionProductRepository;
 
     public ProductResponse mapToResponse(Product product) {
@@ -321,5 +320,21 @@ public class ProductService implements IProductService {
         );
     }
 
+    @CacheEvict(allEntries = true)
+    public ProductImageResponse uploadVariantImage(ProductImageRequest request) throws IOException {
+        ProductVariant variant = productVariantRepository.findById(request.getVariantId())
+                .orElseThrow(() -> new NotFoundException("Product variant not found"));
+        String folder = "furniture-web/products";
+        String url = cloudinaryService.upload(request.getImageFile(),  folder).getUrl();
+        ProductImage newProductImage = ProductImage.builder()
+                .url(url)
+                .productVariant(variant)
+                .build();
+        productVariantRepository.save(variant);
+        return ProductImageResponse.builder()
+                .variantId(request.getVariantId())
+                .url(url)
+                .build();
+    }
 
 }

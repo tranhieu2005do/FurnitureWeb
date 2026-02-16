@@ -30,6 +30,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Page<User> findByRole(Role role, Pageable pageable);
 
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.role.id = :id
+            ORDER BY u.id
+            """)
+    List<User> findByRoleId(@Param("id") Long roleId);
+
     @Query("SELECT u FROM User u WHERE u.isActive = true")
     Page<User> findByActive(Pageable pageable);
     @Query("""

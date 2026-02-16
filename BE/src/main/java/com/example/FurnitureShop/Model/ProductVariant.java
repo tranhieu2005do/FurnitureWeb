@@ -76,6 +76,4 @@ public class ProductVariant {
                 && this.width.compareTo(other.width) == 0
                 && this.height.compareTo(other.height) == 0;
     }
-    @OneToMany(mappedBy = "productVariant",cascade = CascadeType.ALL,  fetch = FetchType.LAZY, orphanRemoval = true)
-    private List<ProductImage> images = new ArrayList<>();
 }

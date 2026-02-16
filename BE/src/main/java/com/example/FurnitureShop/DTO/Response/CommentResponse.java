@@ -6,10 +6,14 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 public class CommentResponse {
+
+    @JsonProperty("id")
+    private Long id;
 
     @JsonProperty("comment")
     private String comment;
@@ -20,11 +24,6 @@ public class CommentResponse {
     @JsonProperty("user_name")
     private String userName;
 
-    public static CommentResponse fromEntity(Comment comment){
-        return CommentResponse.builder()
-                .comment(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .userName(comment.getUser().getFullName())
-                .build();
-    }
+    @JsonProperty("media_response")
+    private List<CommentMediaResponse> commentMedia;
 }

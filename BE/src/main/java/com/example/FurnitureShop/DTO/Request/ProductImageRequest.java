@@ -1,14 +1,17 @@
 package com.example.FurnitureShop.DTO.Request;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
-@AllArgsConstructor
 @Builder
-public class ProductImageRequest
-{
+public class ProductImageRequest {
+
+    @JsonProperty("image")
+    private MultipartFile imageFile;
+
+    @JsonProperty("variant_id")
     private Long variantId;
-    private String url;
 }

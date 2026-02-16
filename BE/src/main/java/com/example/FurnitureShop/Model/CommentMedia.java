@@ -1,16 +1,18 @@
 package com.example.FurnitureShop.Model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 
 @Entity
 @Table(name = "comment_media")
 @Data
 @Builder
-@RequiredArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 public class CommentMedia {
 
     @Id
@@ -31,12 +33,12 @@ public class CommentMedia {
     private MediaType mediaType;
 
     @Column(name = "duration_seconds")
-    private Integer duration;
+    private Double duration;
 
     @Column(name = "position")
     private Integer position;
 
     public static enum MediaType{
-        IMAGE,VIDEO
+        image,video
     }
 }

@@ -1,13 +1,10 @@
 package com.example.FurnitureShop.Controller;
 
+import com.example.FurnitureShop.DTO.Request.ProductImageRequest;
 import com.example.FurnitureShop.DTO.Request.ProductRequest;
 import com.example.FurnitureShop.DTO.Request.ProductVariantRequest;
 import com.example.FurnitureShop.DTO.Response.*;
-import com.example.FurnitureShop.Model.Product;
-import com.example.FurnitureShop.Model.ProductVariant.Material;
-import com.example.FurnitureShop.Repository.ProductRepository;
-import com.example.FurnitureShop.Repository.ProductVariantRepository;
-import com.example.FurnitureShop.Service.Implement.ProductImageService;
+import com.example.FurnitureShop.Service.Implement.CloudinaryService;
 import com.example.FurnitureShop.Service.Implement.ProductService;
 import com.example.FurnitureShop.Service.Implement.ProductVariantService;
 import jakarta.validation.Valid;
@@ -30,7 +27,6 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductVariantService productVariantService;
-    private final ProductImageService productImageService;
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @PostMapping
@@ -69,8 +65,8 @@ public class ProductController {
     {
         productService.deleteProductVariant(productId, variantId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
-//                .statusCode(HttpStatus.OK.value())
-//                .message("Xóa mẫu sản phẩm thành công")
+                .statusCode(HttpStatus.OK.value())
+                .message("Xóa mẫu sản phẩm thành công")
                 .build());
     }
 
@@ -86,28 +82,13 @@ public class ProductController {
                 .build());
     }
 
-    @GetMapping("/{productId")
+    @GetMapping("/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long productId){
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Get product successfully")
                 .data(productService.getProductByProductId(productId))
                 .build());
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @PostMapping("/variant/{variantId}")
-    public ResponseEntity<ApiResponse<List<ProductImageResponse>>> uploadVariantImage(
-            @PathVariable Long variantId,
-            @RequestParam List<MultipartFile> files
-    ) throws IOException {
-        List<ProductImageResponse> response = productImageService.createProductImage(variantId, files);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<List<ProductImageResponse>>builder()
-                        .data(response)
-                        .statusCode(HttpStatus.CREATED.value())
-                        .message("Cập nhật ảnh sản phẩm thành công!!")
-                        .build());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
@@ -142,10 +123,20 @@ public class ProductController {
     {
         ProductResponse response = productService.updateProduct(productId, productRequest);
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                        .statusCode(HttpStatus.OK.value())
-                        .message("Cập nhật sản phẩm thành công!")
-                        .data(response)
-                        .build());
+                .statusCode(HttpStatus.OK.value())
+                .message("Cập nhật sản phẩm thành công!")
+                .data(response)
+                .build());
+    }
+
+    @PostMapping("/variant/image")
+    public ResponseEntity<ApiResponse<ProductImageResponse>> uploadVariantImage(@RequestBody ProductImageRequest request) throws IOException {
+        String folder = "furniture-web/products";
+        return ResponseEntity.ok(ApiResponse.<ProductImageResponse>builder()
+                .data(productService.uploadVariantImage(request))
+                .message("Upload variant image successfully")
+                .statusCode(HttpStatus.OK.value())
+                .build());
     }
 
     @GetMapping
