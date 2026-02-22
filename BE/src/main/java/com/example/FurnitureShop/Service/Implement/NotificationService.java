@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +64,7 @@ public class NotificationService implements INotificationService {
                 .toList();
     }
 
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void notifyPromotionOnBirthDay(){
         Integer month = LocalDate.now().getMonthValue();
@@ -71,7 +73,7 @@ public class NotificationService implements INotificationService {
         for(User user : users){
             try{
 
-                promotionService.createBirthDayPromotionForUser(user);
+//                promotionService.createBirthDayPromotionForUser(user);
                 NotificationRequest request = NotificationRequest.builder()
                         .userId(user.getId())
                         .message("Nhân ngày sinh nhật của bạn, chúng tôi có ữu đãi khuyến mãi 25% giá trị cho đơn hàng của bạn trong tuần lễ sinh nhật này.")

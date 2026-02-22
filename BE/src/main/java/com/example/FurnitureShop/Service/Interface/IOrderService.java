@@ -1,6 +1,7 @@
 package com.example.FurnitureShop.Service.Interface;
 
 import com.example.FurnitureShop.DTO.Request.OrderRequest;
+import com.example.FurnitureShop.DTO.Response.OrderCreatedResponse;
 import com.example.FurnitureShop.DTO.Response.OrderResponse;
 import com.example.FurnitureShop.DTO.Response.PageResponse;
 import com.example.FurnitureShop.Model.Order.OrderStatus;
@@ -10,7 +11,7 @@ import java.time.LocalDate;
 public interface IOrderService {
     PageResponse<OrderResponse> getOrders(Pageable pageable, LocalDate startDate, LocalDate endDate);
 
-    OrderResponse createOrderFromCart(Long userId, OrderRequest orderRequest);
+    OrderCreatedResponse createOrderFromCart(Long userId, OrderRequest orderRequest);
 
     PageResponse<OrderResponse> getOrdersByUserId(Long userId, Pageable pageable, LocalDate startDate, LocalDate endDate);
 

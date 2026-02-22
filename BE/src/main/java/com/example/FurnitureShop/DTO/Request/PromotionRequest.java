@@ -1,9 +1,9 @@
 package com.example.FurnitureShop.DTO.Request;
 
 import com.example.FurnitureShop.Model.Promotion.DiscountType;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,15 +28,15 @@ public class PromotionRequest {
     private Long productId;
 
     @JsonProperty("discount_value")
-    @NotBlank(message = "Hãy nhập giá trị giảm giá.")
+    @NotNull(message = "Hãy nhập giá trị giảm giá.")
     private Integer discountValue;
 
     @JsonProperty("start_date")
-    @NotBlank(message = "Thiếu thời gian bắt đầu hiệu lực giảm giá.")
+    @NotNull(message = "Thiếu thời gian bắt đầu hiệu lực giảm giá.")
     private LocalDateTime startDate;
 
     @JsonProperty("end_date")
-    @NotBlank(message = "Thiếu thời gian kết thục hiệu lực giảm giá.")
+    @NotNull(message = "Thiếu thời gian kết thục hiệu lực giảm giá.")
     private LocalDateTime endDate;
 
     @JsonProperty("is_personal")

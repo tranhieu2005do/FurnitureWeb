@@ -1,12 +1,12 @@
 package com.example.FurnitureShop.Service.Implement;
 
+import com.example.FurnitureShop.DTO.Request.CartItemRequest;
 import com.example.FurnitureShop.DTO.Request.Kafka.OrderItemDTO;
 import com.example.FurnitureShop.DTO.Request.NotificationRequest;
 import com.example.FurnitureShop.DTO.Request.OrderCreatedMailRequest;
 import com.example.FurnitureShop.DTO.Request.OrderRequest;
-import com.example.FurnitureShop.DTO.Response.OrderOfShipperResponse;
-import com.example.FurnitureShop.DTO.Response.OrderResponse;
-import com.example.FurnitureShop.DTO.Response.PageResponse;
+import com.example.FurnitureShop.DTO.Response.*;
+import com.example.FurnitureShop.DTO.Response.OrderCreatedResponse.Item;
 import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.BussinessException;
 import com.example.FurnitureShop.Exception.NotFoundException;
@@ -47,15 +47,17 @@ public class OrderService implements IOrderService {
     private final CartItemRepository cartItemRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final PromotionRepository promotionRepository;
     private final NotificationService notificationService;
     private final PromotionService promotionService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Transactional
     @Override
     @CacheEvict(allEntries = true)
-    public OrderResponse createOrderFromCart(Long userId, OrderRequest orderRequest) {
+    public OrderCreatedResponse createOrderFromCart(Long userId, OrderRequest orderRequest) {
         System.out.println("===== CREATE ORDER METHOD ENTERED =====");
         log.info("Created order from user's cart.");
         User user = userRepository.findById(userId).
@@ -65,23 +67,19 @@ public class OrderService implements IOrderService {
         if(cartItems == null || cartItems.isEmpty()){
             throw new RuntimeException("Giỏ hàng rỗng");
         }
-        User staff = userRepository.findById(orderRequest.getStaffId())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy thông tin nhân viên"));
         Order newOrder = Order.builder()
                 .user(user)
-                .name(orderRequest.getName())
-                .phone(orderRequest.getPhone())
-                .address(orderRequest.getAddress())
+                .name(user.getFullName())
+                .phone(user.getPhone())
+                .address(user.getAddress())
                 .note(orderRequest.getNote())
                 .orderDate(LocalDateTime.now())
                 .orderStatus(OrderStatus.PENDING)
                 .installmentStatus(InstallmentStatus.NOT_INSTALLED)
                 .paymentMethod(orderRequest.getPaymentMethod())
-                .promotionCode(orderRequest.getPromotionCode())
+                .promotionCodes(orderRequest.getPromotionCodes())
                 .paymentStatus(PaymentStatus.UNPAID)
-                .staff(staff)
                 .build();
-
         // generate track_number
         String generated = "ORD-"
                 + java.time.LocalDateTime.now()
@@ -91,42 +89,69 @@ public class OrderService implements IOrderService {
         newOrder.setTotalPrice(BigDecimal.ZERO);
         orderRepository.save(newOrder);
 
+        //OrderCreatedResponse
+        OrderCreatedResponse response = OrderCreatedResponse.builder()
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .customerName(user.getFullName())
+                .note(orderRequest.getNote())
+                .trackingNumber(newOrder.getTrackingNumber())
+                .address(user.getAddress())
+                .build();
+
         // check quantity_in_stock cho từng sản phẩm
         List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        for(CartItem cartItem : cartItems){
-            ProductVariant variant = productVariantRepository.findById(cartItem.getProductVariant().getId()).get();
-            if(variant.getInStock() < cartItem.getQuantity()){
-                throw new BussinessException("Số lượng sản phẩm hiện tại không đủ!!");
-            }
-            OrderItem orderItem = OrderItem.builder()
-                    .order(newOrder)
-                    .productVariant(variant)
-                    .quantity(cartItem.getQuantity())
-                    .price(variant.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())))
-                    .build();
-            totalPrice = totalPrice.add(orderItem.getPrice());
-            orderItems.add(orderItem);
-        }
-//        cartItemRepository.deleteAll(cartItems);
+        List<Item> items = new ArrayList<>();
+        BigDecimal subTotalPrice = BigDecimal.ZERO;
+        for(CartItemRequest itemRequest : orderRequest.getItemRequest()){
+            CartItem cartItem = cartItemRepository
+                    .findByCartItemIdAndVariantId(itemRequest.getCartId(), itemRequest.getVariantId());
 
-        BigDecimal realPrice = totalPrice;
-        BigDecimal discount = BigDecimal.ZERO;
-        int Discount = 0;
-        // check xem có mã giảm giá không và có hợp lệ không
-        if(orderRequest.getPromotionCode() != null && orderRequest.getPromotionCode().length() != 0){
-            Promotion promotion = promotionRepository.findByCode(orderRequest.getPromotionCode());
-            Pair<BigDecimal,BigDecimal> res = promotionService.applyPromotion(promotion, totalPrice, cartItems, userId);
-            log.info("TotalPrice and Discount {}", res.toString());
-            realPrice = res.getFirst();
-            discount = res.getSecond();
-            log.info("Discount {}", discount);
-            log.info("RealPrice {}", realPrice);
+            // Xử lý in_stock cho variant và tổng variant trong product
+            ProductVariant variant = cartItem.getProductVariant();
+            variant.setInStock(variant.getInStock() - itemRequest.getQuantity());
+            productVariantRepository.save(variant);
+            Product product = variant.getProduct();
+            product.setInStockCount(product.getInStockCount() - itemRequest.getQuantity());
+            productRepository.save(product);
+
+            // item trong orderCreatedResponse
+            items.add(Item.fromCartItem(cartItem));
+
+            // item trong Order
+            orderItems.add(OrderItem.builder()
+                    .order(newOrder)
+                    .price(cartItem.getProductVariant().getPrice())
+                    .quantity(cartItem.getQuantity())
+                    .build());
+
+            //add price to totalPrice
+            subTotalPrice = subTotalPrice.add(cartItem.getProductVariant().getPrice()
+                    .multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+//            cartItemRepository.delete(cartItem);
         }
         newOrder.setOrderItems(orderItems);
-        newOrder.setTotalPrice(totalPrice);
+        response.setItems(items);
+
+        // Xử lý promotion
+        BigDecimal totalDisconut = BigDecimal.ZERO;
+        List<ApplyPromotionResponse> applyPromotionResponses = new ArrayList<>();
+        for(String code: orderRequest.getPromotionCodes()){
+            Promotion promotion = promotionRepository.findByCode(code);
+            if (promotion == null) {
+                throw new NotFoundException("Voucher không tồn tại");
+            }
+            ApplyPromotionResponse promotionResponse = promotionService.applyPromotion(promotion, cartItems, subTotalPrice, newOrder.getId(), user);
+            applyPromotionResponses.add(promotionResponse);
+            totalDisconut = totalDisconut.add(promotionResponse.getDiscountValue());
+        }
+        response.setApplyPromotion(applyPromotionResponses);
+        BigDecimal finalPrice = subTotalPrice.subtract(totalDisconut);
+        newOrder.setTotalPrice(finalPrice);
         orderRepository.save(newOrder);
-        orderItemRepository.saveAll(orderItems);
+        response.setSubTotal(subTotalPrice);
+        response.setFinalPrice(finalPrice);
+        response.setTotalDiscount(totalDisconut);
 
         // Tạo Request để mail thông báo đặt hàng thành công qua mail
         OrderCreatedMailRequest mailRequest = OrderCreatedMailRequest.builder()
@@ -134,34 +159,13 @@ public class OrderService implements IOrderService {
                 .subject("ĐẶT HÀNG THÀNH CÔNG")
                 .to(user.getEmail())
                 .build();
-
-        List<OrderItemDTO> orderItemDTOS = orderItems.stream().map(OrderItemDTO::fromEntity).toList();
-        mailRequest.setOrderItems(orderItemDTOS);
-        Map<String,Object> props = new HashMap<>();
-        props.put("fullName", user.getFullName());
-        props.put("email", user.getEmail());
-        props.put("phone", user.getPhone());
-        props.put("address", user.getAddress());
-        props.put("realPrice", realPrice);
-        props.put("salePercentage", Discount);
-        props.put("discount", discount);
-        props.put("trackNumber", generated);
-        props.put("totalPrice", totalPrice);
-        mailRequest.setProps(props);
-        System.out.println("===== SYSTEM OUT =====");
-        log.error("===== ERROR LOG =====");
-        log.warn("===== WARN LOG =====");
-        log.info("===== INFO LOG =====");
-        log.info("MailRequest before Kafka: {}", mailRequest);
-        log.info("OrderItems size: {}", mailRequest.getOrderItems().size());
         NotificationRequest orderedNotifi = NotificationRequest.builder()
                 .message("Đơn hàng của bạn đã được đặt và chờ được tiến hành.")
                 .topic("Đặt hàng thành công.")
                 .userId(userId)
                 .build();
-        mailRequest.setNotificationRequest(orderedNotifi);
-//        kafkaTemplate.send("Order_Created", mailRequest);
-        return OrderResponse.fromEntity(newOrder);
+
+        return response;
     }
 
     @Override

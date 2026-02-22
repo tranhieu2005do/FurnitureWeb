@@ -2,6 +2,7 @@ package com.example.FurnitureShop.Controller;
 
 import com.example.FurnitureShop.DTO.Request.OrderRequest;
 import com.example.FurnitureShop.DTO.Response.ApiResponse;
+import com.example.FurnitureShop.DTO.Response.OrderCreatedResponse;
 import com.example.FurnitureShop.DTO.Response.OrderResponse;
 import com.example.FurnitureShop.DTO.Response.PageResponse;
 import com.example.FurnitureShop.Model.Order.OrderStatus;
@@ -26,12 +27,12 @@ public class OrderController {
 
     @PreAuthorize("@userService.isSelf(#userId)")
     @PostMapping
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrderFromCart(
+    public ResponseEntity<ApiResponse<OrderCreatedResponse>> createOrderFromCart(
             @RequestParam Long userId,
             @RequestBody @Valid OrderRequest orderRequest)
     {
-        OrderResponse orderResponse = orderService.createOrderFromCart(userId, orderRequest);
-        return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+        OrderCreatedResponse orderResponse = orderService.createOrderFromCart(userId, orderRequest);
+        return ResponseEntity.ok(ApiResponse.<OrderCreatedResponse>builder()
                         .statusCode(HttpStatus.OK.value())
                         .message("Create order successfully")
                         .data(orderResponse)

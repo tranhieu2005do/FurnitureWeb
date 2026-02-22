@@ -1,10 +1,10 @@
 package com.example.FurnitureShop.Repository;
 
+import com.example.FurnitureShop.Model.Promotion.DiscountType;
 import com.example.FurnitureShop.Model.Promotion;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,4 +37,21 @@ public interface PromotionRepository extends JpaRepository<Promotion,Long> {
               AND pu.user.id = :userId
             """)
     boolean existsPromotion(@Param("userId") Long userId,@Param("year") int year);
+
+    @Query("""
+            SELECT p
+            FROM Promotion p
+            WHERE CURRENT_TIMESTAMP BETWEEN p.startDate AND p.endDate
+              AND p.isPersonal = FALSE
+              AND p.discountType <> :type
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM PromotionUsage pu
+                    WHERE pu.promotion.id = p.id
+                      AND pu.user.id = :userId
+              )
+        """)
+    List<Promotion> activePromotionExceptType(
+            @Param("userId") Long userId,
+            @Param("type") DiscountType type);
 }

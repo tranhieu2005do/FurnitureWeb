@@ -17,6 +17,24 @@ const cartService = {
         } catch (error) {
             throw error.response?.data || error.message;
         }
+    },
+
+    updateCartItem: async (cartItemData) => {
+        try {
+            const response = await apiClient.patch('/api/v1/carts/cartItem', cartItemData);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
+    },
+
+    removeItem: async (cartItemId) => {
+        try {
+            const response = await apiClient.patch(`/api/v1/carts/cartItem/${cartItemId}`);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error.message;
+        }
     }
 }
 

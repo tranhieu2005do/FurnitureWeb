@@ -54,4 +54,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
             """)
     List<User> findUsersInBirthday(@Param("month") Integer month,
                                        @Param("day") Integer day);
+
+    @Query("""
+            SELECT u FROM User u
+            WHERE MONTH(u.dateOfBirth) = :month
+            AND DAY(u.dateOfBirth) = :day
+            """)
+    List<User> findByMonthAndDay(@Param("month") Integer month, @Param("day") Integer day);
 }

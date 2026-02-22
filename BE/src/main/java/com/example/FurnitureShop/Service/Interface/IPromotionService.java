@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface IPromotionService {
 
-    PromotionResponse create(PromotionRequest promotionRequest);
+    PromotionResponse createProductPromotion(PromotionRequest promotionRequest);
 
     List<PromotionResponse> filterByProduct(Long productId, boolean active);
 

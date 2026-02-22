@@ -13,16 +13,24 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CartItemResponse {
 
-    @JsonProperty("variant_id")
-    private Long variantId;
+    @JsonProperty("product_name")
+    private String productName;
+
+    @JsonProperty("variant")
+    private ProductVariantResponse variant;
 
     @JsonProperty("quantity")
     private int quantity;
 
+    @JsonProperty("id")
+    private Long cartItemId;
+
     public static CartItemResponse fromEntity(CartItem cartItem) {
         return CartItemResponse.builder()
+                .cartItemId(cartItem.getId())
+                .productName(cartItem.getProductVariant().getProduct().getName())
                 .quantity(cartItem.getQuantity())
-                .variantId(cartItem.getProductVariant().getId())
+                .variant(ProductVariantResponse.fromEntity(cartItem.getProductVariant()))
                 .build();
     }
 }

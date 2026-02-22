@@ -28,6 +28,9 @@ public class PromotionUsers {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "user_at")
+    @Column(name = "used_at")
     private LocalDateTime usedAt;
+
+    @Column(name = "order_id")
+    private Long orderId;
 }

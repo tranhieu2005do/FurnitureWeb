@@ -3,19 +3,22 @@ package com.example.FurnitureShop.Controller;
 import com.example.FurnitureShop.DTO.Request.PromotionRequest;
 import com.example.FurnitureShop.DTO.Response.ApiResponse;
 import com.example.FurnitureShop.DTO.Response.PromotionResponse;
+import com.example.FurnitureShop.DTO.Response.PromotionUserCanUse;
+import com.example.FurnitureShop.Model.CustomUserDetails;
 import com.example.FurnitureShop.Service.Implement.PromotionService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @AllArgsConstructor
-@RequestMapping("api/v1/promotions")
+@RequestMapping("/api/v1/promotions")
 public class PromotionController {
     private final PromotionService promotionService;
 
@@ -25,19 +28,34 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.<PromotionResponse>builder()
                 .message("Promotion Created")
                 .statusCode(HttpStatus.CREATED.value())
-                .data(promotionService.create(promotionRequest))
+                .data(promotionService.createProductPromotion(promotionRequest))
                 .build());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @GetMapping
+    @GetMapping("/product/{productId}")
     public ResponseEntity<ApiResponse<List<PromotionResponse>>> getPromotions(
-            @RequestParam(required = false) Long productId,
+            @PathVariable Long productId,
             @RequestParam(required = false) boolean active){
         return ResponseEntity.ok(ApiResponse.<List<PromotionResponse>>builder()
                 .data(promotionService.filterByProduct(productId, active))
                 .statusCode(HttpStatus.OK.value())
                 .message("Promotion List")
+                .build());
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<PromotionUserCanUse>>> getActivePromotionForUser(){
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Long userId = userDetails.getUserId();
+        return ResponseEntity.ok(ApiResponse.<List<PromotionUserCanUse>>builder()
+                .data(promotionService.activeByUser(userId))
+                .message("Promotion List")
+                .statusCode(HttpStatus.OK.value())
                 .build());
     }
 

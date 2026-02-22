@@ -43,12 +43,16 @@ public class CartController {
                 .build());
     }
 
-    @PreAuthorize("@userService.isSelf(#userId)")
     @PatchMapping("/cartItem/{cartItemId}")
     public ResponseEntity<ApiResponse<Void>> removeItemFromCart(
-            @PathVariable Long cartItemId,
-            @RequestParam Long userId
+            @PathVariable Long cartItemId
     ){
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Long userId = userDetails.getUserId();
         cartService.removeItemFromCart(userId, cartItemId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .message("Remove item from cart successfully")
@@ -56,12 +60,16 @@ public class CartController {
                 .build());
     }
 
-    @PreAuthorize("@userService.isSelf(#userId)")
     @PatchMapping("/cartItem")
     public ResponseEntity<ApiResponse<Void>> updateCart(
-            @RequestParam Long userId,
             @RequestBody @Valid CartItemRequest cartItemRequest)
     {
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Long userId = userDetails.getUserId();
         cartService.updateCartItems(userId, cartItemRequest);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .statusCode(HttpStatus.OK.value())

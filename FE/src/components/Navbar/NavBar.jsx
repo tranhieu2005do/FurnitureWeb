@@ -11,7 +11,7 @@ export default function NavBar(){
       const fetchCart = async () => {
         try {
           const response = await cartService.getUserCart();
-          console.log("Cart response:", response.data);
+          // console.log("Cart response:", response.data);
           localStorage.setItem('cart_id', response.data.cart_id);
           setCartItems(response.data.cart_items);
         } catch (error) {

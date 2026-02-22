@@ -30,6 +30,9 @@ public class PromotionUsage {
     @JoinColumn(name = "user_id",  nullable = false)
     private User user;
 
+    @Column(name = "order_id")
+    private Long orderId;
+
     @Column(name = "used", nullable = false)
     private LocalDateTime used;
 }

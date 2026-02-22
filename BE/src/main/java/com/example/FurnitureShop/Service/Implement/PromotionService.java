@@ -1,15 +1,14 @@
 package com.example.FurnitureShop.Service.Implement;
 
 import com.example.FurnitureShop.DTO.Request.PromotionRequest;
+import com.example.FurnitureShop.DTO.Response.ApplyPromotionResponse;
 import com.example.FurnitureShop.DTO.Response.PromotionResponse;
+import com.example.FurnitureShop.DTO.Response.PromotionUserCanUse;
 import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.NotFoundException;
 import com.example.FurnitureShop.Model.*;
 import com.example.FurnitureShop.Model.Promotion.DiscountType;
-import com.example.FurnitureShop.Repository.ProductRepository;
-import com.example.FurnitureShop.Repository.PromotionProductRepository;
-import com.example.FurnitureShop.Repository.PromotionRepository;
-import com.example.FurnitureShop.Repository.PromotionUserRepository;
+import com.example.FurnitureShop.Repository.*;
 import com.example.FurnitureShop.Service.Interface.IPromotionService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +16,16 @@ import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.util.Pair;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,11 +41,13 @@ public class PromotionService implements IPromotionService {
     private final PromotionUserRepository promotionUserRepository;
     private final PromotionUsageService promotionUsageService;
     private final ProductRepository productRepository;
+    private final UserRepository  userRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
 
     @Transactional
     @Override
-    @CacheEvict(allEntries = true)
-    public PromotionResponse create(PromotionRequest promotionRequest) {
+//    @CacheEvict(allEntries = true)
+    public PromotionResponse createProductPromotion(PromotionRequest promotionRequest) {
         Promotion newPromotion = Promotion.builder()
                 .code(promotionRequest.getCode())
                 .startDate(promotionRequest.getStartDate())
@@ -67,6 +72,91 @@ public class PromotionService implements IPromotionService {
             promotionProductRepository.save(pProduct);
         }
         return PromotionResponse.fromEntity(newPromotion);
+    }
+
+    private String generateCode() {
+        return "BD-" + UUID.randomUUID().toString().substring(0,8).toUpperCase();
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Ho_Chi_Minh")
+    public void createUserPromotion() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate targetDate = today.plusDays(3);
+
+        int month = targetDate.getMonthValue();
+        int day = targetDate.getDayOfMonth();
+
+        List<User> users = userRepository.findByMonthAndDay(month, day);
+
+        for(User u : users){
+            Promotion newPromotion = Promotion.builder()
+                    .code("BD-" + u.getDateOfBirth().toString() + u.getId() + LocalDateTime.now().getYear())
+                    .startDate(LocalDateTime.now())
+                    .endDate(LocalDateTime.now().plusDays(7))
+                    .discountType(DiscountType.BIRTHDAY)
+                    .isPersonal(true)
+                    .discountValue(20)
+                    .build();
+
+            promotionRepository.save(newPromotion);
+
+            PromotionUsers newPromotionUser =  PromotionUsers.builder()
+                    .promotion(newPromotion)
+                    .user(u)
+                    .build();
+
+            promotionUserRepository.save(newPromotionUser);
+        }
+    }
+
+    @Transactional
+//    @Cacheable(key = "'user_' + #userId")
+    public List<PromotionUserCanUse> activeByUser(Long userId){
+
+        List<PromotionUserCanUse> responses = new ArrayList<>();
+
+        // Load promotionUser
+        List<PromotionUsers> pUsers = promotionUserRepository.findPromotionActiveByUserId(userId);
+        for(PromotionUsers pUser : pUsers){
+            PromotionUserCanUse p = PromotionUserCanUse.builder()
+                    .code(pUser.getPromotion().getCode())
+                    .promotionId(pUser.getPromotion().getId())
+                    .userId(userId)
+                    .type(DiscountType.BIRTHDAY)
+                    .discountValue(pUser.getPromotion().getDiscountValue())
+                    .startDate(pUser.getPromotion().getStartDate())
+                    .endDate(pUser.getPromotion().getEndDate())
+                    .productId(null)
+                    .productName(null)
+                    .build();
+            responses.add(p);
+        }
+
+        // Load active promotion except birthday promotion
+        List<Promotion> promotions = promotionRepository.activePromotionExceptType(userId, DiscountType.BIRTHDAY);
+        for(Promotion p : promotions){
+            Long productId = null;
+            String productName = null;
+            if(p.getDiscountType().equals(DiscountType.PRODUCT)){
+                PromotionProducts pProduct = promotionProductRepository.findByPromotionId(p.getId());
+                productId = pProduct.getProduct().getId();
+                productName = pProduct.getProduct().getName();
+            }
+            PromotionUserCanUse pUC = PromotionUserCanUse.builder()
+                    .code(p.getCode())
+                    .productName(productName)
+                    .promotionId(p.getId())
+                    .userId(userId)
+                    .type(p.getDiscountType())
+                    .discountValue(p.getDiscountValue())
+                    .startDate(p.getStartDate())
+                    .endDate(p.getEndDate())
+                    .productId(productId)
+                    .build();
+            responses.add(pUC);
+        }
+        return responses;
     }
 
     @Transactional(readOnly = true)
@@ -97,67 +187,51 @@ public class PromotionService implements IPromotionService {
     }
 
     @Transactional
-    @CacheEvict(allEntries = true, condition = "#user != null")
-    public void createBirthDayPromotionForUser(User user) {
-        if( promotionRepository.existsPromotion(user.getId(), LocalDateTime.now().getYear())){
-            log.info("Khách hàng đã có phiếu giảm giá sinh nhật trong năm nay.");
-        }
-        else{
-            log.info("Creating promotion for user {}", user.getFullName());
-            Promotion p = new Promotion();
-            p.setCode("BDAY-" + user.getId() + "-" + UUID.randomUUID());
-            p.setDiscountValue(25);
-            p.setDiscountType(DiscountType.BIRTHDAY);
-            p.setStartDate(LocalDateTime.now());
-            p.setEndDate(LocalDateTime.now().plusDays(7));
-            p.setIsPersonal(true);
-            promotionRepository.save(p);
-
-            PromotionUsers pUser = PromotionUsers.builder()
-                    .user(user)
-                    .promotion(p)
-                    .build();
-            promotionUserRepository.save(pUser);
-        }
-    }
-
-    public Pair<BigDecimal,BigDecimal> applyPromotion(Promotion promotion, BigDecimal totalPrice, List<CartItem> cartItems, Long userId) {
-        BigDecimal valDiscount = BigDecimal.ZERO;
+    public ApplyPromotionResponse applyPromotion(
+            Promotion promotion,
+            List<CartItem> cartItems,
+            BigDecimal subTotalPrice,
+            Long orderId,
+            User user
+    ){
+        ApplyPromotionResponse response = ApplyPromotionResponse.builder()
+                .code(promotion.getCode())
+                .promotionId(promotion.getId())
+                .discountType(promotion.getDiscountType())
+                .build();
         if(promotion.getDiscountType().equals(DiscountType.BIRTHDAY)){
-            PromotionUsers pUser = promotionUserRepository.findByPromotionId(promotion.getId());
-            if(pUser != null && pUser.getUsedAt() == null){
-                BigDecimal discount = BigDecimal.valueOf(promotion.getDiscountValue());
-                valDiscount = totalPrice.multiply(discount)
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                totalPrice = totalPrice.subtract(valDiscount);
-                pUser.setUsedAt(LocalDateTime.now());
-                promotionUserRepository.save(pUser);
-            }
+            PromotionUsers pU = promotionUserRepository.findByPromotionIdAndUserId(promotion.getId(), user.getId());
+            BigDecimal discountValue = subTotalPrice
+                    .multiply(BigDecimal.valueOf(promotion.getDiscountValue()))
+                    .divide(BigDecimal.valueOf(100));
+            response.setDiscountValue(discountValue);
+            response.setProductName(null);
+            pU.setUsedAt(LocalDateTime.now());
+            pU.setOrderId(orderId);
+            promotionUserRepository.save(pU);
         }
-        else if(promotion.getDiscountType().equals(DiscountType.SHIPPING)){
-
-        }
-        else if(promotion.getDiscountType().equals(DiscountType.ORDER)){
-            BigDecimal discount = BigDecimal.valueOf( promotion.getDiscountValue());
-            valDiscount = totalPrice.multiply(discount)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            totalPrice = totalPrice.subtract(valDiscount);
-            promotionUsageService.applyPromotion(promotion, userId);
-        }
-        else{
+        else if (promotion.getDiscountType().equals(DiscountType.PRODUCT)){
             PromotionProducts pProduct = promotionProductRepository.findByPromotionId(promotion.getId());
+            response.setProductName(pProduct.getProduct().getName());
+            BigDecimal totalDiscount = BigDecimal.ZERO;
             for(CartItem cartItem : cartItems){
                 if(cartItem.getProductVariant().getProduct().getId().equals(pProduct.getProduct().getId())){
-                    valDiscount = cartItem.getProductVariant().getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()))
+                    BigDecimal discountValue = cartItem.getProductVariant().getPrice()
+                            .multiply(BigDecimal.valueOf(cartItem.getQuantity()))
                             .multiply(BigDecimal.valueOf(promotion.getDiscountValue()))
-                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                    totalPrice = totalPrice.subtract(valDiscount);
-                    promotionUsageService.applyPromotion(promotion, userId);
-                    break;
+                            .divide(BigDecimal.valueOf(100));
+                    totalDiscount = totalDiscount.add(discountValue);
+                    PromotionUsage pU = PromotionUsage.builder()
+                            .used(LocalDateTime.now())
+                            .user(user)
+                            .promotion(promotion)
+                            .orderId(orderId)
+                            .build();
+                    promotionUsageRepository.save(pU);
                 }
             }
+            response.setDiscountValue(totalDiscount);
         }
-        Pair<BigDecimal,BigDecimal> result = Pair.of(totalPrice,valDiscount);
-        return result;
+        return response;
     }
 }

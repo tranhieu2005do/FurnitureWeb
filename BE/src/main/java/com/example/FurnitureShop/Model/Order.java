@@ -36,7 +36,7 @@ public class Order {
     private OrderStatus orderStatus;
 
     @Column(name = "promotion_code")
-    private String promotionCode;
+    private List<String> promotionCodes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)

@@ -29,4 +29,11 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
                AND pd.promotion.endDate >= CURRENT_TIMESTAMP
             """)
     PromotionProducts findActivePromotionProductByProductId(@Param("productId") Long productId);
+
+    @Query("""
+            SELECT p FROM PromotionProducts p
+            WHERE CURRENT_TIMESTAMP BETWEEN p.promotion.startDate AND p.promotion.endDate
+                AND p.promotion.discountType = 'PRODUCT'
+            """)
+    List<PromotionProducts> findActivePromotionProduct(@Param("userId") Long userId);
 }
