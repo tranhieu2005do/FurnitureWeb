@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-@Table(name = "products")
+@Table(name = "messages")
 @Setter @Getter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
@@ -17,7 +18,7 @@ public class Message {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "conservation_id")
+    @JoinColumn(name = "conversation_id")
     private Conservation conservation;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,10 +31,7 @@ public class Message {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Enumerated(EnumType.STRING)
-    private MessageType type;
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL)
+    private List<MessageMedia> medias;
 
-    public enum MessageType {
-        TEXT,IMAGE,FILE
-    }
 }

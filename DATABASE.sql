@@ -273,8 +273,8 @@ FROM numbers;
 
 SELECT * FROM users;
 
-CREATE INDEX idx_role_created
-ON users(role_id, created_at DESC);
+drop INDEX idx_role_created
+ON users;
 
 CREATE INDEX idx_role_created_cover
 ON users(role_id, created_at DESC, id, phone);
@@ -284,9 +284,184 @@ EXPLAIN
 SELECT id, phone, created_at
 FROM users
 WHERE role_id = 3
+  AND created_at >= '2026-01-01'
 ORDER BY created_at DESC
 LIMIT 20;
 
-show index from users;
+
+INSERT INTO products
+(name, description, category_id, created_at, updated_at, instock, regard_star, purchase_count, is_active, max_price, min_price)
+VALUES
+('Bàn Làm Việc Gỗ Sồi', 'Thiết kế hiện đại', 11, NOW(), NOW(), 20, 4.5, 120, 1, 7500000, 6500000),
+('Tủ Hồ Sơ Gỗ Tần Bì', 'Chắc chắn và bền bỉ', 11, NOW(), NOW(), 15, 4.3, 80, 1, 6800000, 5800000),
+('Kệ Trang Trí Gỗ Óc Chó', 'Sang trọng cao cấp', 9, NOW(), NOW(), 12, 4.7, 95, 1, 12500000, 11000000),
+('Bàn Ăn Marble Cao Cấp', 'Mặt đá tự nhiên', 10, NOW(), NOW(), 10, 4.8, 140, 1, 22000000, 19500000),
+('Bàn Trà Granite', 'Phong cách hiện đại', 9, NOW(), NOW(), 18, 4.4, 90, 1, 9500000, 8200000),
+('Kệ Tivi Inox', 'Thiết kế tối giản', 9, NOW(), NOW(), 25, 4.2, 60, 1, 7200000, 6200000),
+('Bàn Console Nhôm', 'Nhẹ và bền', 7, NOW(), NOW(), 30, 4.1, 50, 1, 5800000, 4800000),
+('Tủ Kính Trang Trí', 'Thiết kế kính cường lực', 7, NOW(), NOW(), 14, 4.6, 85, 1, 10500000, 9200000),
+('Bàn Làm Việc Gỗ Óc Chó', 'Phong cách sang trọng', 11, NOW(), NOW(), 16, 4.9, 200, 1, 15500000, 13500000),
+('Bàn Ăn Gỗ Sồi 6 Ghế', 'Phù hợp gia đình', 10, NOW(), NOW(), 9, 4.5, 100, 1, 18500000, 16500000);
+
+
+INSERT INTO product_variants
+(color, height, instock, is_active, length, material, price, width, product_id)
+VALUES
+
+-- 1 Gỗ Sồi
+('trắng', 75, 10, b'1', 120, 'gỗ sồi', 6500000, 60, 1),
+('nâu gỗ đậm', 75, 10, b'1', 140, 'gỗ sồi', 7500000, 70, 1),
+
+-- 2 Gỗ Tần Bì
+('be', 180, 7, b'1', 80, 'gỗ tần bì', 5800000, 40, 2),
+('xám nhạt', 200, 8, b'1', 90, 'gỗ tần bì', 6800000, 45, 2),
+
+-- 3 Gỗ Óc Chó
+('đen', 200, 5, b'1', 120, 'gỗ óc chó', 11000000, 35, 3),
+('nâu gỗ nhạt', 220, 7, b'1', 140, 'gỗ óc chó', 12500000, 40, 3),
+
+-- 4 Marble
+('trắng', 75, 4, b'1', 160, 'marble', 19500000, 90, 4),
+('xám đậm', 75, 6, b'1', 180, 'marble', 22000000, 100, 4),
+
+-- 5 Granite
+('đen', 45, 9, b'1', 100, 'granite', 8200000, 60, 5),
+('xám nhạt', 50, 9, b'1', 120, 'granite', 9500000, 70, 5),
+
+-- 6 Inox
+('xám đậm', 60, 12, b'1', 140, 'inox', 6200000, 40, 6),
+('đen', 60, 13, b'1', 160, 'inox', 7200000, 50, 6),
+
+-- 7 Nhôm
+('be', 80, 15, b'1', 120, 'nhôm', 4800000, 40, 7),
+('trắng', 85, 15, b'1', 140, 'nhôm', 5800000, 45, 7),
+
+-- 8 Kính
+('trắng', 190, 7, b'1', 80, 'kính', 9200000, 35, 8),
+('đen', 200, 7, b'1', 90, 'kính', 10500000, 40, 8),
+
+-- 9 Gỗ Óc Chó
+('nâu gỗ đậm', 75, 8, b'1', 140, 'gỗ óc chó', 13500000, 60, 9),
+('đen', 75, 8, b'1', 160, 'gỗ óc chó', 15500000, 70, 9),
+
+-- 10 Gỗ Sồi
+('trắng', 75, 4, b'1', 160, 'gỗ sồi', 16500000, 90, 10),
+('nâu gỗ nhạt', 75, 5, b'1', 180, 'gỗ sồi', 18500000, 100, 10);
+
+INSERT INTO ratings (id, product_id, user_id, star, created_at, comments) VALUES
+-- Product 1 (avg ~4.5)
+(1, 1, 1, 5, '2026-02-14 09:00:00', 'Sản phẩm rất chắc chắn'),
+(2, 1, 7, 4, '2026-02-14 10:15:00', 'Thiết kế đẹp, hài lòng'),
+(3, 1, 8, 5, '2026-02-15 08:30:00', 'Chất lượng tốt'),
+
+-- Product 2 (avg ~4.3)
+(4, 2, 9, 4, '2026-02-14 11:00:00', 'Khá ổn trong tầm giá'),
+(5, 2, 10, 4, '2026-02-15 09:45:00', 'Bền và chắc'),
+(6, 2, 11, 5, '2026-02-15 14:20:00', 'Rất đáng mua'),
+
+-- Product 3 (avg ~4.7)
+(7, 3, 1, 5, '2026-02-14 12:00:00', 'Gỗ đẹp, cao cấp'),
+(8, 3, 131082, 5, '2026-02-15 13:10:00', 'Rất sang trọng'),
+(9, 3, 7, 4, '2026-02-16 09:00:00', 'Giá hơi cao nhưng xứng đáng'),
+
+-- Product 4 (avg ~4.8)
+(10, 4, 8, 5, '2026-02-14 16:00:00', 'Mặt đá rất đẹp'),
+(11, 4, 9, 5, '2026-02-15 17:30:00', 'Gia đình rất thích'),
+(12, 4, 131083, 4, '2026-02-16 08:45:00', 'Chất lượng tốt'),
+
+-- Product 5 (avg ~4.4)
+(13, 5, 10, 4, '2026-02-14 10:40:00', 'Thiết kế hiện đại'),
+(14, 5, 11, 5, '2026-02-15 11:15:00', 'Rất hài lòng'),
+(15, 5, 1, 4, '2026-02-16 12:00:00', 'Ổn'),
+
+-- Product 6 (avg ~4.2)
+(16, 6, 7, 4, '2026-02-14 09:25:00', 'Tối giản đẹp'),
+(17, 6, 8, 4, '2026-02-15 10:00:00', 'Phù hợp phòng khách'),
+(18, 6, 9, 5, '2026-02-16 11:30:00', 'Chất lượng tốt'),
+
+-- Product 7 (avg ~4.1)
+(19, 7, 10, 4, '2026-02-14 15:20:00', 'Nhẹ và bền'),
+(20, 7, 11, 4, '2026-02-15 16:40:00', 'Ổn trong tầm giá'),
+(21, 7, 131082, 5, '2026-02-16 09:50:00', 'Rất tiện lợi'),
+
+-- Product 8 (avg ~4.6)
+(22, 8, 131083, 5, '2026-02-14 14:30:00', 'Kính đẹp và chắc'),
+(23, 8, 1, 4, '2026-02-15 15:00:00', 'Hài lòng'),
+(24, 8, 7, 5, '2026-02-16 16:00:00', 'Thiết kế sang trọng'),
+
+-- Product 9 (avg ~4.9)
+(25, 9, 8, 5, '2026-02-14 17:00:00', 'Rất xuất sắc'),
+(26, 9, 9, 5, '2026-02-15 18:00:00', 'Chất lượng cao'),
+(27, 9, 10, 5, '2026-02-16 19:00:00', 'Hoàn hảo'),
+
+-- Product 10 (avg ~4.5)
+(28, 10, 11, 5, '2026-02-14 09:10:00', 'Phù hợp gia đình'),
+(29, 10, 131082, 4, '2026-02-15 10:20:00', 'Giá hợp lý'),
+(30, 10, 131083, 4, '2026-02-16 11:45:00', 'Khá hài lòng');
+
+
+CREATE TABLE comment_media( -- bảng chứa các ảnh/vide được gửi kèm comment
+	id bigint primary key auto_increment,
+    comment_id bigint not null,
+    url longtext, -- đường dẫn tới nơi chứa ảnh/video
+    media_type enum('image', 'video'),
+    thumbnail_url longtext, -- ảnh đại diện
+    duration_seconds int,
+    position int, -- thứ tứ trong comment
+    foreign key (comment_id) references comments(id)
+);
+
+CREATE TABLE message_media(
+    id bigint primary key auto_increment,
+    message_id bigint not null,
+    url longtext not null,
+    thumbnail longtext,
+    type enum('IMAGE', 'VIDEO', 'FILE'),
+    foreign key (message_id) references messages(id)
+);
+
+set SQL_SAFE_UPDATES = 0;
+UPDATE products p
+JOIN (
+    SELECT r.product_id, AVG(r.star) AS avg_star
+    FROM ratings r
+    GROUP BY r.product_id
+) t ON p.id = t.product_id
+SET p.regard_star = ROUND(t.avg_star, 2);
+select * from categories;
+select * from roles;
+select * from products;
+select * from product_variants;
+select * from ratings;
+select * from users;
+select * from carts;
+select * from cart_items;
+select * from comments;
+select * from comment_media;
+select * from product_images;
+select * from promotions;
+
+select * from promotion_users;
+select * from promotion_products;
+
+select * from promotion_usage;
+select * from products p 
+where p.min_price ;
+
+select * 
+from promotions p 
+where current_timestamp() between p.start_date and p.end_date
+   and p.discount_type <> "BIRTHDAY"
+   and p.is_personal = false
+   and not exists (
+		select 1 from promotion_usage pu
+        where pu.promotion_id = p.id
+           and pu.user_id = 1
+   );
+   
+
+
+
+
 
 

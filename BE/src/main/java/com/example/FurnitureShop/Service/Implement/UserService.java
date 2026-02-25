@@ -4,9 +4,11 @@ import com.example.FurnitureShop.DTO.Request.*;
 import com.example.FurnitureShop.DTO.Response.*;
 import com.example.FurnitureShop.Exception.AuthException;
 import com.example.FurnitureShop.Exception.NotFoundException;
+import com.example.FurnitureShop.Model.Conservation;
 import com.example.FurnitureShop.Model.CustomUserDetails;
 import com.example.FurnitureShop.Model.Role;
 import com.example.FurnitureShop.Model.User;
+import com.example.FurnitureShop.Repository.ConservationRepository;
 import com.example.FurnitureShop.Repository.RoleRepository;
 import com.example.FurnitureShop.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final OrderService orderService;
     private final InventoryLogService inventoryLogService;
+    private final ConservationRepository conservationRepository;
 
 //    private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -64,6 +67,12 @@ public class UserService {
                 .address(accountResquest.getAddress())
                 .build();
         userRepository.save(new_user);
+
+        Conservation newConservation = Conservation.builder()
+                .customer(new_user)
+                .createdAt(LocalDateTime.now())
+                .build();
+        conservationRepository.save(newConservation);
 
         MailRequest mailRequest = MailRequest.builder()
                 .subject("XÁC NHẬN NGƯỜI DÙNG ĐĂNG KÝ TÀI KHOẢN THÀNH CÔNG")

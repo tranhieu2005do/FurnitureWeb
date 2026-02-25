@@ -23,4 +23,8 @@ public class UploadResult {
 
     @JsonProperty("duration")
     private Double duration;
+
+    private String originalFileName;
+
+    private Long size;
 }

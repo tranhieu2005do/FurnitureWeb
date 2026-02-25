@@ -40,6 +40,10 @@ public class CloudinaryService {
 
         String thumbnailUrl = null;
         Double duration = null;
+        String originalFilename = uploadResult.get("original_filename") != null
+                ? uploadResult.get("original_filename").toString() : null;
+        Long bytes = uploadResult.get("bytes") != null
+                ? ((Integer) uploadResult.get("bytes")).longValue() : null;
 
         if ("video".equals(resourceType)) {
             thumbnailUrl = generateVideoThumbnail(publicId);
@@ -54,7 +58,9 @@ public class CloudinaryService {
                 publicId,
                 resourceType,
                 thumbnailUrl,
-                duration
+                duration,
+                originalFilename,
+                bytes
         );
     }
 

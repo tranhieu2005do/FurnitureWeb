@@ -11,34 +11,16 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 @Slf4j
-@Controller
 @AllArgsConstructor
+@Controller
 public class ChatController {
     private final ChatService chatService;
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
-    public ChatMessage sendMessage(@Payload ChatMessage message, SimpMessageHeaderAccessor headerAccessor) {
-        log.info("{} is sending message: {}", message.getSender(), message.getContent());
+    public void sendMessage(
+            @Payload ChatMessage message,
+            SimpMessageHeaderAccessor headerAccessor
+    ){}
 
-        chatService.saveMessage(message);
-        // Kiểm tra null trước khi set
-        if (message.getSender() != null) {
-            headerAccessor.getSessionAttributes().put("username", message.getSender());
-        }
-
-        return message;
-    }
-
-    @MessageMapping("/chat.addUser")
-    @SendTo("/topic/public")
-    public ChatMessage addUser(@Payload ChatMessage message, SimpMessageHeaderAccessor headerAccessor){
-        log.info("User joined: {}", message.getSender());
-
-        if (message.getSender() != null) {
-            headerAccessor.getSessionAttributes().put("username", message.getSender());
-        }
-
-        return message;
-    }
 }
